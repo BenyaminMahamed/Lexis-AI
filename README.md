@@ -40,10 +40,6 @@ git clone https://github.com/BenyaminMahamed/AI-Research-Assistant.git
 cd AI-Research-Assistant
 Environment Configuration
 
-PowerShell
-python -m venv venv
-.\venv\Scripts\activate  # Windows
-# source venv/bin/activate # Mac/Linux
 Install Dependencies
 
 PowerShell
@@ -76,5 +72,3 @@ Augmented Generation: The retrieved context is fed into the LLM as a "grounding 
 Benyamin Mahamed
 
 BSc Computer Science @ University of Westminster (Predicted First-Class)
-
-LinkedIn | GitHub
