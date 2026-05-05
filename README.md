@@ -1,99 +1,141 @@
-# AI Research Assistant (RAG Pipeline)
+# Lexis — AI Research Assistant
 
-A full-stack **Retrieval-Augmented Generation (RAG)** platform designed to facilitate deep interaction with academic literature. This project implements a sophisticated AI pipeline—from high-fidelity PDF parsing and semantic chunking to vector embedding storage and context-aware querying.
+A full-stack **Retrieval-Augmented Generation (RAG)** platform for deep interaction with academic literature. Upload PDFs, ask questions, generate structured summaries, critique arguments, and compare papers — all grounded in the actual document content.
 
-## 🚀 Key Features
+Built as a portfolio project demonstrating end-to-end AI/ML engineering: PDF ingestion, semantic chunking, vector embeddings, FAISS similarity search, and LLM-powered generation.
 
-*   **High-Fidelity PDF Ingestion:** Extracts and cleans text from academic PDFs using `PyMuPDF` (fitz).
-*   **Semantic Vector Embeddings:** Leverages `sentence-transformers` (all-MiniLM-L6-v2) to map document context into high-dimensional space.
-*   **Real-time Vector Search:** Implements `FAISS` (Facebook AI Similarity Search) for millisecond-latency similarity indexing and retrieval.
-*   **Context-Grounded Q&A:** Synchronizes retrieved document context with Large Language Models (LLMs) to ensure hallucination-resistant, source-backed answers.
-*   **Research Dashboard:** A robust Django-based management interface for multi-document analysis and persistent storage.
+---
 
-## 🛠️ Technical Stack
+## Features
 
-*   **Backend:** Python 3.13, Django 6.0
-*   **AI/ML Stack:** PyTorch, Sentence-Transformers, FAISS, OpenAI/Gemini API
-*   **Data Science:** NumPy, SciPy, Scikit-learn
-*   **Database:** SQLite (Relational Metadata), FAISS Index (Vector Store)
-*   **Frontend:** Django Templates, Bootstrap 5
+- **PDF Ingestion** — High-fidelity text extraction via PyMuPDF with page-level metadata preserved
+- **Semantic Chunking** — Overlapping word-window chunking to maintain context across boundaries
+- **Vector Embeddings** — Sentence-level embeddings using `all-MiniLM-L6-v2` (384-dimensional)
+- **FAISS Vector Search** — Millisecond-latency nearest-neighbour retrieval across indexed chunks
+- **Four Analysis Modes** — Q&A, Summarise, Critique, and Compare across multiple papers
+- **Source Attribution** — Every answer surfaces the exact chunks and page numbers it was grounded in
+- **Demo Mode** — Fully functional RAG pipeline without an API key; add `GEMINI_API_KEY` to enable LLM responses
 
-## 📂 Project Structure
+---
 
-```text
-├── config/              # Core Django configurations (Settings, URLs, WSGI, ASGI)
-├── papers/              # Main application logic
-│   ├── migrations/      # Database version history (0001_initial.py)
-│   ├── apps.py          # Application configuration
-│   ├── models.py        # Database schema (Paper, Chunk)
-│   ├── pipeline.py      # AI Engine (Embeddings, FAISS, RAG logic)
-│   ├── urls.py          # App-specific routing
-│   └── views.py         # Request handling and business logic
-├── templates/           # HTML templates
-│   └── papers/          # App-specific templates (base.html, index.html, detail.html)
-├── .env                 # Environment variables (API keys, Secret Key)
-├── db.sqlite3           # Local relational database
-├── manage.py            # Django CLI entry point
-├── README.md            # Project documentation
-└── requirements.txt     # Python dependencies
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Backend | Python 3.13, Django 6.0 |
+| AI/ML | Sentence-Transformers, FAISS, Google Gemini 2.0 Flash |
+| Embeddings | `all-MiniLM-L6-v2` via HuggingFace |
+| PDF Parsing | PyMuPDF (fitz) |
+| Database | SQLite (metadata), FAISS index (vectors) |
+| Frontend | Django Templates (custom dark academic UI) |
+| API | Django REST Framework |
+
+---
+
+## Project Structure
+
+```
+├── config/              # Django settings, URLs, WSGI/ASGI
+├── papers/
+│   ├── migrations/      # Database migrations
+│   ├── models.py        # Paper and Chunk schema
+│   ├── pipeline.py      # RAG engine: extraction, chunking, embeddings, FAISS, Gemini
+│   ├── views.py         # Request handling and API endpoints
+│   └── urls.py          # URL routing
+├── templates/
+│   └── papers/          # base.html, index.html, detail.html
+├── .env.example         # Environment variable template
+├── manage.py
+└── requirements.txt
 ```
 
-## ⚙️ Installation & Setup
-1. Clone the Repository
-```text
-PowerShell
+---
+
+## Setup
+
+### 1. Clone the repository
+
+```bash
 git clone https://github.com/BenyaminMahamed/AI-Research-Assistant.git
 cd AI-Research-Assistant
-Environment Configuration
 ```
-2. Environment Configuration
 
-PowerShell
-```text
+### 2. Create and activate a virtual environment
+
+```bash
 python -m venv venv
+
+# Windows
 .\venv\Scripts\activate
-Install Dependencies
-```
-3. Install Dependencies
 
-PowerShell
-```text
+# macOS/Linux
+source venv/bin/activate
+```
+
+### 3. Install dependencies
+
+```bash
 pip install -r requirements.txt
-Environment Variables
-Create a .env file in the root directory:
 ```
-4. Environment Variables
 
-Create a .env file in the root directory:
+### 4. Configure environment variables
 
-Plaintext
-```text
+Create a `.env` file in the project root:
+
+```env
+DJANGO_SECRET_KEY=your_django_secret_key_here
 DEBUG=True
-SECRET_KEY=your_django_secret_key
-OPENAI_API_KEY=your_api_key_here
-Initialize Database & Launch
+ALLOWED_HOSTS=localhost,127.0.0.1
+GEMINI_API_KEY=your_gemini_api_key_here
 ```
-5. Initialize Database & Launch
 
-PowerShell
-```text
-PowerShell
-python manage.py makemigrations papers
+Generate a Django secret key:
+
+```bash
+python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+```
+
+Get a free Gemini API key at [aistudio.google.com](https://aistudio.google.com). The app runs in demo mode without one — the RAG pipeline still works, only LLM generation is disabled.
+
+### 5. Initialise the database and run
+
+```bash
 python manage.py migrate
 python manage.py runserver
 ```
-## 🧠 Architectural Workflow (The RAG Pipeline)
-Ingestion & Preprocessing: PDFs are parsed and divided into overlapping semantic chunks to preserve context across boundaries.
 
-Vectorization: Each chunk is passed through a transformer model to generate a unique numerical embedding.
+Visit `http://127.0.0.1:8000`.
 
-Indexing: These embeddings are indexed via FAISS, creating a searchable mathematical map of the document's knowledge.
+---
 
-Retrieval: User queries are embedded in real-time; the system performs a "nearest neighbor" search to find the most relevant document sections.
+## RAG Pipeline
 
-Augmented Generation: The retrieved context is fed into the LLM as a "grounding truth," ensuring generated answers are strictly based on the uploaded research.
+```
+PDF Upload
+    │
+    ▼
+Text Extraction (PyMuPDF, page-level)
+    │
+    ▼
+Semantic Chunking (500-word windows, 50-word overlap)
+    │
+    ▼
+Embedding Generation (all-MiniLM-L6-v2, 384-dim, normalised)
+    │
+    ▼
+FAISS Indexing (IndexFlatIP — inner product similarity)
+    │
+    ▼
+Query → Embed → Nearest-Neighbour Search → Retrieve Top-K Chunks
+    │
+    ▼
+Context + Question → Gemini 2.0 Flash → Grounded Answer + Sources
+```
 
-## 👨‍💻 Author
-Benyamin Mahamed
+---
 
-BSc Computer Science @ University of Westminster (Predicted First-Class)
+## Author
+
+**Benyamin Mahamed**  
+BSc Computer Science @ University of Westminster (Predicted First-Class)  
+[GitHub](https://github.com/BenyaminMahamed)
