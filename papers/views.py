@@ -4,12 +4,13 @@ import logging
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
-from django.views.decorators.csrf import csrf_exempt
 
 from .models import Paper, Chunk
 from .pipeline import process_paper, answer_question
 
 logger = logging.getLogger(__name__)
+
+VALID_MODES = {'qa', 'summarise', 'critique', 'compare'}
 
 
 def index(request):
@@ -64,13 +65,17 @@ def ask(request):
             return JsonResponse({'error': 'No question provided.'}, status=400)
         if not paper_ids:
             return JsonResponse({'error': 'No papers selected.'}, status=400)
+        if mode not in VALID_MODES:
+            return JsonResponse({'error': f'Invalid mode. Must be one of: {", ".join(VALID_MODES)}'}, status=400)
 
         result = answer_question(question, paper_ids=paper_ids, mode=mode)
         return JsonResponse(result)
 
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON in request body.'}, status=400)
     except Exception as e:
         logger.error(f"Ask endpoint error: {e}")
-        return JsonResponse({'error': str(e)}, status=500)
+        return JsonResponse({'error': 'An unexpected error occurred. Please try again.'}, status=500)
 
 
 def delete_paper(request, pk):

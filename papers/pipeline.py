@@ -197,7 +197,7 @@ def build_context(chunk_texts: list) -> str:
     return "\n\n---\n\n".join(chunk_texts)
 
 
-def ask_claude(question: str, context: str, mode: str = 'qa') -> str:
+def ask_gemini(question: str, context: str, mode: str = 'qa') -> str:
     api_key = getattr(settings, 'GEMINI_API_KEY', '')
     if not api_key:
         return _demo_response(mode, context)
@@ -210,14 +210,26 @@ def ask_claude(question: str, context: str, mode: str = 'qa') -> str:
         system_instruction=system,
     )
 
-    response = model.generate_content(
-        f"Context from paper(s):\n\n{context}\n\n---\n\nQuestion: {question}"
-    )
-    return response.text
+    try:
+        response = model.generate_content(
+            f"Context from paper(s):\n\n{context}\n\n---\n\nQuestion: {question}"
+        )
+        return response.text
+    except Exception as e:
+        error_str = str(e)
+        if '429' in error_str or 'quota' in error_str.lower():
+            return "⚠️ API quota exceeded. Please wait a moment and try again, or check your Gemini API key limits at aistudio.google.com."
+        elif '404' in error_str or 'not found' in error_str.lower():
+            return "⚠️ Model not available. Please check your Gemini API configuration."
+        elif '401' in error_str or 'api key' in error_str.lower():
+            return "⚠️ Invalid API key. Please check your GEMINI_API_KEY in .env."
+        else:
+            logger.error(f"Gemini API error: {e}")
+            return "⚠️ An error occurred while generating a response. Please try again."
 
 
 # Backward-compatible alias
-ask_llm = ask_claude
+ask_llm = ask_gemini
 
 
 def _demo_response(mode: str, context: str) -> str:
@@ -288,7 +300,7 @@ def answer_question(question: str, paper_ids: list, mode: str = 'qa') -> dict:
     ordered_chunks = [chunk_map[cid] for cid in chunk_db_ids if cid in chunk_map]
 
     context = build_context([c.text for c in ordered_chunks])
-    answer = ask_claude(question, context, mode=mode)
+    answer = ask_gemini(question, context, mode=mode)
 
     sources = [
         {
