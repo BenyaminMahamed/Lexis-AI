@@ -20,6 +20,7 @@ A full-stack **Retrieval-Augmented Generation (RAG)** platform designed to facil
 
 ## 📂 Project Structure
 
+```text
 ├── config/              # Core Django configurations (Settings, WSGI, ASGI)
 ├── papers/
 │   ├── models.py        # Relational schema for Papers and Text Chunks
@@ -29,6 +30,7 @@ A full-stack **Retrieval-Augmented Generation (RAG)** platform designed to facil
 ├── media/               # Persistent storage for uploaded PDF assets
 ├── faiss_index/         # Serialized local vector database
 └── manage.py            # Project execution entry point
+```
 
 ## ⚙️ Installation & Setup
 Clone the Repository
