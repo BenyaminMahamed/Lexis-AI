@@ -1,11 +1,9 @@
 """
-RAG Pipeline
-------------
+RAG Pipeline — Gemini-powered
 PDF → text extraction → chunking → embeddings → FAISS
-User query → embed → FAISS search → retrieve chunks → LLM → answer
+User query → embed → FAISS search → retrieve chunks → Gemini → answer
 """
 
-import os
 import json
 import logging
 import numpy as np
@@ -14,7 +12,7 @@ from pathlib import Path
 import fitz  # PyMuPDF
 from sentence_transformers import SentenceTransformer
 import faiss
-import openai
+import google.generativeai as genai
 
 from django.conf import settings
 
@@ -22,15 +20,18 @@ logger = logging.getLogger(__name__)
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 
-CHUNK_SIZE = 500        # words per chunk
-CHUNK_OVERLAP = 50      # word overlap between chunks
-TOP_K = 4               # number of chunks to retrieve
-EMBEDDING_DIM = 384     # matches 'all-MiniLM-L6-v2'
+CHUNK_SIZE = 500
+CHUNK_OVERLAP = 50
+TOP_K = 4
+EMBEDDING_DIM = 384  # all-MiniLM-L6-v2
+GEMINI_MODEL = "gemini-1.5-flash"
+
 INDEX_PATH = Path(settings.FAISS_INDEX_PATH)
 META_PATH = INDEX_PATH / 'metadata.json'
 INDEX_FILE = INDEX_PATH / 'index.bin'
 
-# ── Singleton model loader ─────────────────────────────────────────────────────
+
+# ── Embedding model ────────────────────────────────────────────────────────────
 
 _embedding_model = None
 
@@ -44,10 +45,7 @@ def get_embedding_model():
 
 # ── PDF Extraction ─────────────────────────────────────────────────────────────
 
-def extract_text_from_pdf(file_path: str) -> list[dict]:
-    """
-    Returns list of {page: int, text: str} dicts.
-    """
+def extract_text_from_pdf(file_path: str) -> list:
     doc = fitz.open(file_path)
     pages = []
     for page_num, page in enumerate(doc):
@@ -59,7 +57,6 @@ def extract_text_from_pdf(file_path: str) -> list[dict]:
 
 
 def extract_title(file_path: str) -> str:
-    """Best-effort title extraction from first page."""
     doc = fitz.open(file_path)
     first_page = doc[0].get_text().strip()
     doc.close()
@@ -69,11 +66,7 @@ def extract_title(file_path: str) -> str:
 
 # ── Chunking ───────────────────────────────────────────────────────────────────
 
-def chunk_pages(pages: list[dict]) -> list[dict]:
-    """
-    Splits page text into overlapping word-based chunks.
-    Returns list of {text, page, chunk_index}.
-    """
+def chunk_pages(pages: list) -> list:
     chunks = []
     idx = 0
     for page_data in pages:
@@ -81,9 +74,8 @@ def chunk_pages(pages: list[dict]) -> list[dict]:
         start = 0
         while start < len(words):
             end = min(start + CHUNK_SIZE, len(words))
-            chunk_text = ' '.join(words[start:end])
             chunks.append({
-                'text': chunk_text,
+                'text': ' '.join(words[start:end]),
                 'page': page_data['page'],
                 'chunk_index': idx,
             })
@@ -92,7 +84,7 @@ def chunk_pages(pages: list[dict]) -> list[dict]:
     return chunks
 
 
-# ── FAISS Index Management ─────────────────────────────────────────────────────
+# ── FAISS Index ────────────────────────────────────────────────────────────────
 
 def _load_or_create_index():
     INDEX_PATH.mkdir(parents=True, exist_ok=True)
@@ -101,8 +93,8 @@ def _load_or_create_index():
         with open(META_PATH) as f:
             metadata = json.load(f)
     else:
-        index = faiss.IndexFlatIP(EMBEDDING_DIM)  # Inner product (cosine on normalised vecs)
-        metadata = []  # list of {chunk_db_id, paper_id}
+        index = faiss.IndexFlatIP(EMBEDDING_DIM)
+        metadata = []
     return index, metadata
 
 
@@ -112,11 +104,7 @@ def _save_index(index, metadata):
         json.dump(metadata, f)
 
 
-def add_chunks_to_index(chunks_with_ids: list[dict]) -> list[int]:
-    """
-    chunks_with_ids: list of {text, chunk_db_id, paper_id}
-    Returns list of faiss_ids assigned.
-    """
+def add_chunks_to_index(chunks_with_ids: list) -> list:
     model = get_embedding_model()
     texts = [c['text'] for c in chunks_with_ids]
     embeddings = model.encode(texts, normalize_embeddings=True).astype('float32')
@@ -137,11 +125,7 @@ def add_chunks_to_index(chunks_with_ids: list[dict]) -> list[int]:
     return faiss_ids
 
 
-def search_index(query: str, paper_ids: list[int] = None, top_k: int = TOP_K):
-    """
-    Returns list of {chunk_db_id, paper_id, score} sorted by relevance.
-    paper_ids: if provided, filter to only those papers.
-    """
+def search_index(query: str, paper_ids=None, top_k: int = TOP_K):
     if not INDEX_FILE.exists():
         return []
 
@@ -152,7 +136,6 @@ def search_index(query: str, paper_ids: list[int] = None, top_k: int = TOP_K):
     if index.ntotal == 0:
         return []
 
-    # Search more than top_k so we can filter by paper_id if needed
     k = min(index.ntotal, top_k * 10 if paper_ids else top_k)
     scores, faiss_ids = index.search(query_vec, k)
 
@@ -176,86 +159,95 @@ def search_index(query: str, paper_ids: list[int] = None, top_k: int = TOP_K):
     return results
 
 
-# ── LLM Layer ──────────────────────────────────────────────────────────────────
+# ── Gemini LLM Layer ───────────────────────────────────────────────────────────
 
-def build_context(chunk_texts: list[str]) -> str:
+SYSTEM_PROMPTS = {
+    'qa': (
+        "You are a precise academic research assistant. Answer the user's question "
+        "using ONLY the provided context from the paper. If the answer isn't clearly "
+        "supported by the context, say so. Be concise, accurate, and direct."
+    ),
+    'summarise': (
+        "You are an expert academic summariser. Based on the provided context, produce "
+        "a structured summary with these sections:\n"
+        "**Main Contribution** — what the paper introduces or proves\n"
+        "**Methodology** — how they did it\n"
+        "**Key Findings** — the main results\n"
+        "**Limitations** — weaknesses acknowledged or apparent\n"
+        "Be specific to this paper, not generic."
+    ),
+    'critique': (
+        "You are a rigorous peer reviewer for a top-tier academic conference. "
+        "Based on the provided context, produce a structured critique:\n"
+        "**Core Assumptions** — what the authors take for granted\n"
+        "**Methodological Weaknesses** — flaws in experimental design or evaluation\n"
+        "**Missing Baselines / Experiments** — what comparisons are absent\n"
+        "**Suggested Improvements** — concrete ways to strengthen the work\n"
+        "Be specific and critical. Avoid vague praise."
+    ),
+    'compare': (
+        "You are a comparative research analyst. Based on the provided context from "
+        "multiple papers, produce a structured comparison covering: approach differences, "
+        "methodology, strengths/weaknesses per paper, and a final verdict on which is stronger."
+    ),
+}
+
+
+def build_context(chunk_texts: list) -> str:
     return "\n\n---\n\n".join(chunk_texts)
 
 
-def ask_llm(question: str, context: str, mode: str = 'qa') -> str:
-    """
-    mode: 'qa' | 'summarise' | 'critique' | 'compare'
-    """
-    system_prompts = {
-        'qa': (
-            "You are a precise academic research assistant. Answer the user's question "
-            "using ONLY the provided context from the paper. If the answer isn't in the "
-            "context, say so clearly. Be concise and accurate."
-        ),
-        'summarise': (
-            "You are an academic summariser. Based on the provided context, produce a "
-            "clear summary with 5-6 bullet points covering: main contribution, methodology, "
-            "key findings, and limitations. Be precise, not generic."
-        ),
-        'critique': (
-            "You are a rigorous academic peer reviewer. Based on the provided context, "
-            "critique the paper by identifying: core assumptions, methodological weaknesses, "
-            "missing experiments or baselines, and potential improvements. Be specific."
-        ),
-        'compare': (
-            "You are a comparative research analyst. Based on the provided context from "
-            "multiple papers, compare their approaches, methodologies, strengths, and "
-            "weaknesses. Structure your response clearly."
-        ),
-    }
-
-    api_key = settings.OPENAI_API_KEY
+def ask_claude(question: str, context: str, mode: str = 'qa') -> str:
+    api_key = getattr(settings, 'GEMINI_API_KEY', '')
     if not api_key:
-        return _fallback_response(mode, context)
+        return _demo_response(mode, context)
 
-    client = openai.OpenAI(api_key=api_key)
-    response = client.chat.completions.create(
-        model='gpt-4o-mini',
-        messages=[
-            {'role': 'system', 'content': system_prompts.get(mode, system_prompts['qa'])},
-            {'role': 'user', 'content': f"Context:\n{context}\n\nQuestion: {question}"},
-        ],
-        temperature=0.3,
-        max_tokens=800,
+    genai.configure(api_key=api_key)
+    system = SYSTEM_PROMPTS.get(mode, SYSTEM_PROMPTS['qa'])
+
+    model = genai.GenerativeModel(
+        model_name=GEMINI_MODEL,
+        system_instruction=system,
     )
-    return response.choices[0].message.content
+
+    response = model.generate_content(
+        f"Context from paper(s):\n\n{context}\n\n---\n\nQuestion: {question}"
+    )
+    return response.text
 
 
-def _fallback_response(mode: str, context: str) -> str:
-    """Used when no OpenAI key is set — returns raw chunks for dev testing."""
-    return f"[DEV MODE — no OpenAI key set]\n\nRetrieved context:\n\n{context[:1000]}..."
+# Backward-compatible alias
+ask_llm = ask_claude
 
 
-# ── Full Pipeline ──────────────────────────────────────────────────────────────
+def _demo_response(mode: str, context: str) -> str:
+    preview = context[:500].replace('\n', ' ')
+    word_count = len(context.split())
+    return (
+        f"**DEMO MODE** — No `GEMINI_API_KEY` configured.\n\n"
+        f"The RAG pipeline retrieved {word_count} words of context successfully:\n\n"
+        f"_{preview}..._\n\n"
+        f"Add `GEMINI_API_KEY=your_key` to `.env` to get real responses."
+    )
+
+
+# ── Full Ingestion Pipeline ────────────────────────────────────────────────────
 
 def process_paper(paper_db_obj) -> int:
-    """
-    Full ingestion pipeline for a Paper model instance.
-    Returns number of chunks created.
-    """
     from papers.models import Chunk
 
     file_path = paper_db_obj.uploaded_file.path
 
-    # 1. Extract title if not set
     if not paper_db_obj.title:
         paper_db_obj.title = extract_title(file_path)
         paper_db_obj.save()
 
-    # 2. Extract text
     pages = extract_text_from_pdf(file_path)
     if not pages:
         raise ValueError("Could not extract text from PDF.")
 
-    # 3. Chunk
     chunks = chunk_pages(pages)
 
-    # 4. Save chunks to DB first (to get IDs)
     db_chunks = []
     for c in chunks:
         db_chunk = Chunk.objects.create(
@@ -266,23 +258,16 @@ def process_paper(paper_db_obj) -> int:
         )
         db_chunks.append(db_chunk)
 
-    # 5. Embed + add to FAISS
     chunks_with_ids = [
-        {
-            'text': db_chunk.text,
-            'chunk_db_id': db_chunk.id,
-            'paper_id': paper_db_obj.id,
-        }
-        for db_chunk in db_chunks
+        {'text': db.text, 'chunk_db_id': db.id, 'paper_id': paper_db_obj.id}
+        for db in db_chunks
     ]
     faiss_ids = add_chunks_to_index(chunks_with_ids)
 
-    # 6. Store faiss_id back on each chunk
     for db_chunk, fid in zip(db_chunks, faiss_ids):
         db_chunk.faiss_id = fid
         db_chunk.save(update_fields=['faiss_id'])
 
-    # 7. Mark paper as processed
     paper_db_obj.processed = True
     paper_db_obj.chunk_count = len(db_chunks)
     paper_db_obj.save()
@@ -290,25 +275,20 @@ def process_paper(paper_db_obj) -> int:
     return len(db_chunks)
 
 
-def answer_question(question: str, paper_ids: list[int], mode: str = 'qa') -> dict:
-    """
-    Full Q&A pipeline.
-    Returns {answer, sources: [{text, page, paper_id}]}
-    """
+def answer_question(question: str, paper_ids: list, mode: str = 'qa') -> dict:
     from papers.models import Chunk
 
     results = search_index(question, paper_ids=paper_ids)
     if not results:
-        return {'answer': 'No relevant content found.', 'sources': []}
+        return {'answer': 'No relevant content found in the selected papers.', 'sources': []}
 
     chunk_db_ids = [r['chunk_db_id'] for r in results]
     chunks = Chunk.objects.filter(id__in=chunk_db_ids).select_related('paper')
-
     chunk_map = {c.id: c for c in chunks}
     ordered_chunks = [chunk_map[cid] for cid in chunk_db_ids if cid in chunk_map]
 
     context = build_context([c.text for c in ordered_chunks])
-    answer = ask_llm(question, context, mode=mode)
+    answer = ask_claude(question, context, mode=mode)
 
     sources = [
         {

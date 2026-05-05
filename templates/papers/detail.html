@@ -1,507 +1,348 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
+{% block title %}{{ paper.title|truncatechars:50 }} — Lexis{% endblock %}
 
-{% block title %}{{ paper.title|default:"Paper" }} - Research Assistant{% endblock %}
+{% block nav_status %}
+<div class="status-dot"></div>
+<span>{{ paper.chunk_count }} CHUNKS LOADED</span>
+{% endblock %}
 
 {% block extra_css %}
 <style>
-    .detail-layout {
-        display: grid;
-        grid-template-columns: 280px 1fr;
-        gap: 2rem;
-        align-items: start;
-    }
+/* ── Layout ── */
+.detail-grid { display: grid; grid-template-columns: 1fr 320px; gap: 2rem; align-items: start; }
 
-    /* -- Sidebar -- */
-    .sidebar {}
+/* ── Paper header ── */
+.paper-header { margin-bottom: 2rem; }
+.back-link { font-family: var(--mono); font-size: 10px; color: var(--text-3); text-decoration: none; letter-spacing: 0.06em; display: inline-flex; align-items: center; gap: 0.4rem; margin-bottom: 1.2rem; transition: color 0.15s; }
+.back-link:hover { color: var(--accent); }
+.paper-title { font-family: var(--serif); font-size: clamp(1.4rem, 3vw, 2rem); font-weight: 400; line-height: 1.25; margin-bottom: 0.8rem; }
+.paper-meta-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
 
-    .paper-info {
-        margin-bottom: 1.5rem;
-    }
+/* ── Mode selector ── */
+.mode-bar { display: grid; grid-template-columns: repeat(4,1fr); border: 1px solid var(--border-2); margin-bottom: 1.5rem; }
+.mode-btn { padding: 0.6rem 0.5rem; font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; border: none; background: transparent; color: var(--text-3); cursor: pointer; transition: 0.15s; border-right: 1px solid var(--border-2); position: relative; }
+.mode-btn:last-child { border-right: none; }
+.mode-btn:hover { color: var(--text); background: var(--surface-2); }
+.mode-btn.active { color: var(--accent); background: var(--accent-dim); }
+.mode-btn.active::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: var(--accent); }
+.mode-desc { font-family: var(--mono); font-size: 10px; color: var(--text-3); margin-bottom: 1rem; padding: 0 0.2rem; min-height: 1.4em; transition: 0.2s; }
 
-    .paper-info h2 {
-        font-family: var(--serif);
-        font-size: 1.2rem;
-        font-weight: 400;
-        line-height: 1.4;
-        margin-bottom: 0.8rem;
-    }
+/* ── Quick actions ── */
+.quick-bar { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1.25rem; }
+.quick-btn { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.3rem 0.7rem; font-family: var(--mono); font-size: 10px; color: var(--text-3); border: 1px solid var(--border); background: transparent; cursor: pointer; letter-spacing: 0.04em; transition: 0.15s; }
+.quick-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
 
-    .meta-row {
-        display: flex;
-        flex-direction: column;
-        gap: 0.4rem;
-        margin-bottom: 1.2rem;
-    }
+/* ── Input ── */
+.ask-form { display: flex; border: 1px solid var(--border-2); margin-bottom: 1.5rem; transition: border-color 0.18s; }
+.ask-form:focus-within { border-color: var(--accent); }
+.ask-input { flex: 1; background: transparent; border: none; outline: none; padding: 0.8rem 1rem; font-family: var(--sans); font-size: 14px; color: var(--text); }
+.ask-input::placeholder { color: var(--text-3); }
+.ask-send { border: none; border-left: 1px solid var(--border-2); background: transparent; padding: 0 1.2rem; color: var(--text-3); cursor: pointer; font-size: 18px; transition: 0.15s; }
+.ask-send:hover { background: var(--accent-dim); color: var(--accent); }
 
-    .meta-item {
-        font-family: var(--mono);
-        font-size: 11px;
-        color: var(--text-muted);
-    }
+/* ── Messages ── */
+.messages { display: flex; flex-direction: column; gap: 1px; }
+.msg { border: 1px solid var(--border); background: var(--surface); animation: fadeUp 0.28s ease; }
+.msg-user { background: var(--surface-2); border-color: transparent; border-left: 2px solid var(--accent); }
+.msg-head { display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 1rem; border-bottom: 1px solid var(--border); }
+.msg-role { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); }
+.msg-user .msg-role { color: var(--accent); }
+.msg-mode { font-family: var(--mono); font-size: 9px; padding: 1px 5px; border: 1px solid rgba(126,232,162,0.3); color: var(--accent); letter-spacing: 0.06em; }
+.msg-body { padding: 0.9rem 1rem; font-size: 13.5px; line-height: 1.75; color: var(--text); white-space: pre-wrap; }
+.msg-body strong { color: var(--text); font-weight: 500; }
+.msg-user .msg-body { color: var(--text-2); }
 
-    .section-label {
-        font-family: var(--mono);
-        font-size: 11px;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-        color: var(--text-muted);
-        margin-bottom: 0.8rem;
-    }
+/* Sources */
+.sources { border-top: 1px solid var(--border); padding: 0.75rem 1rem; }
+.sources-hd { font-family: var(--mono); font-size: 9px; color: var(--text-3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.6rem; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; }
+.sources-hd::after { content: '▾'; font-size: 8px; }
+.sources-hd.collapsed::after { content: '▸'; }
+.source-list { display: flex; flex-direction: column; gap: 0.4rem; }
+.source-list.collapsed { display: none; }
+.source-item { padding: 0.5rem 0.7rem; border-left: 2px solid var(--border-2); font-size: 11px; color: var(--text-3); line-height: 1.55; }
+.source-page { font-family: var(--mono); font-size: 9px; color: var(--accent); margin-bottom: 0.2rem; }
 
-    .mode-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.4rem;
-        margin-bottom: 1.5rem;
-    }
+/* Thinking */
+.thinking { display: flex; align-items: center; gap: 0.75rem; padding: 1rem; border: 1px solid var(--border); color: var(--text-3); font-family: var(--mono); font-size: 11px; }
+.thinking-dots span { display: inline-block; animation: blink 1.1s infinite; }
+.thinking-dots span:nth-child(2) { animation-delay: 0.15s; }
+.thinking-dots span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes blink { 0%,80%,100%{opacity:0.15} 40%{opacity:1} }
 
-    .mode-btn {
-        padding: 0.5rem 0.6rem;
-        border: 1px solid var(--border);
-        background: transparent;
-        color: var(--text-muted);
-        font-family: var(--mono);
-        font-size: 11px;
-        cursor: pointer;
-        text-align: left;
-        transition: all 0.15s;
-        letter-spacing: 0.03em;
-    }
+/* Empty state */
+.chat-empty { padding: 3rem 1rem; text-align: center; border: 1px dashed var(--border); }
+.chat-empty p { font-family: var(--mono); font-size: 11px; color: var(--text-3); }
 
-    .mode-btn:hover {
-        border-color: var(--accent);
-        color: var(--accent);
-    }
+/* ── Sidebar ── */
+.sidebar { position: sticky; top: 68px; display: flex; flex-direction: column; gap: 1px; }
+.side-panel { background: var(--surface); border: 1px solid var(--border); }
+.side-head { padding: 0.65rem 1rem; border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); display: flex; align-items: center; justify-content: space-between; }
+.side-body { padding: 1rem; }
+.stat { display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.stat:last-child { border-bottom: none; }
+.stat-k { color: var(--text-3); font-size: 11px; }
+.stat-v { font-family: var(--mono); font-size: 11px; color: var(--text-2); }
+.compare-item { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
+.compare-item:last-child { border-bottom: none; }
+.compare-item input { accent-color: var(--accent); width: 13px; height: 13px; cursor: pointer; flex-shrink: 0; }
+.compare-item label { cursor: pointer; font-size: 11px; color: var(--text-3); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.compare-item label.is-current { color: var(--text); }
+.action-row { display: flex; flex-direction: column; gap: 0.5rem; }
 
-    .mode-btn.active {
-        border-color: var(--accent);
-        background: var(--accent-dim);
-        color: var(--accent);
-    }
-
-    .quick-btns {
-        display: flex;
-        flex-direction: column;
-        gap: 0.4rem;
-        margin-bottom: 1.5rem;
-    }
-
-    .quick-btn {
-        padding: 0.5rem 0.8rem;
-        border: 1px solid var(--border);
-        background: transparent;
-        color: var(--text-dim);
-        font-family: var(--mono);
-        font-size: 11px;
-        cursor: pointer;
-        text-align: left;
-        transition: all 0.15s;
-    }
-
-    .quick-btn:hover {
-        border-color: var(--text-muted);
-        color: var(--text);
-    }
-
-    .compare-section {
-        margin-bottom: 1.5rem;
-    }
-
-    .compare-section select {
-        width: 100%;
-        background: var(--surface);
-        border: 1px solid var(--border);
-        color: var(--text-muted);
-        font-family: var(--mono);
-        font-size: 11px;
-        padding: 0.5rem;
-        margin-bottom: 0.4rem;
-        appearance: none;
-        cursor: pointer;
-    }
-
-    .compare-section select:focus {
-        outline: none;
-        border-color: var(--accent);
-    }
-
-    .delete-link {
-        font-family: var(--mono);
-        font-size: 11px;
-        color: var(--text-muted);
-        text-decoration: none;
-        transition: color 0.15s;
-    }
-
-    .delete-link:hover { color: var(--red); }
-
-    /* -- Chat area -- */
-    .chat-area {}
-
-    .messages {
-        min-height: 400px;
-        margin-bottom: 1.5rem;
-        display: flex;
-        flex-direction: column;
-        gap: 1.2rem;
-    }
-
-    .message {
-        display: flex;
-        flex-direction: column;
-        gap: 0.4rem;
-    }
-
-    .message-role {
-        font-family: var(--mono);
-        font-size: 10px;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-        color: var(--text-muted);
-    }
-
-    .message-role.assistant { color: var(--accent); }
-
-    .message-body {
-        font-size: 14px;
-        line-height: 1.7;
-        color: var(--text);
-    }
-
-    .message-body p { margin-bottom: 0.6rem; }
-    .message-body ul { padding-left: 1.2rem; margin-bottom: 0.6rem; }
-    .message-body li { margin-bottom: 0.3rem; }
-
-    .sources {
-        margin-top: 0.8rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.4rem;
-    }
-
-    .source-chip {
-        display: inline-flex;
-        align-items: flex-start;
-        gap: 0.5rem;
-        padding: 0.5rem 0.8rem;
-        border: 1px solid var(--border);
-        background: var(--surface);
-        font-family: var(--mono);
-        font-size: 11px;
-        color: var(--text-muted);
-        line-height: 1.5;
-    }
-
-    .source-chip .page-ref {
-        color: var(--accent);
-        white-space: nowrap;
-        flex-shrink: 0;
-    }
-
-    /* -- Input -- */
-    .input-area {
-        border-top: 1px solid var(--border);
-        padding-top: 1.5rem;
-    }
-
-    .input-row {
-        display: flex;
-        gap: 0.6rem;
-    }
-
-    .input-row textarea {
-        flex: 1;
-        background: var(--surface);
-        border: 1px solid var(--border);
-        color: var(--text);
-        font-family: var(--sans);
-        font-size: 14px;
-        padding: 0.8rem 1rem;
-        resize: none;
-        height: 52px;
-        transition: border-color 0.15s;
-        line-height: 1.5;
-    }
-
-    .input-row textarea:focus {
-        outline: none;
-        border-color: var(--accent);
-    }
-
-    .input-row textarea::placeholder { color: var(--text-muted); }
-
-    /* -- Thinking indicator -- */
-    .thinking {
-        display: none;
-        align-items: center;
-        gap: 0.6rem;
-        font-family: var(--mono);
-        font-size: 12px;
-        color: var(--text-muted);
-        padding: 0.4rem 0;
-    }
-
-    .thinking.active { display: flex; }
-
-    .thinking-dots span {
-        display: inline-block;
-        width: 4px;
-        height: 4px;
-        background: var(--accent);
-        border-radius: 50%;
-        margin: 0 1px;
-        animation: bounce 1.2s infinite;
-    }
-
-    .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
-    .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
-
-    @keyframes bounce {
-        0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
-        40% { transform: translateY(-4px); opacity: 1; }
-    }
-
-    /* -- Empty state -- */
-    .empty-chat {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        min-height: 300px;
-        gap: 0.6rem;
-        opacity: 0.4;
-    }
-
-    .empty-chat p {
-        font-family: var(--mono);
-        font-size: 12px;
-        color: var(--text-muted);
-    }
-
-    @media (max-width: 700px) {
-        .detail-layout { grid-template-columns: 1fr; }
-    }
+@media (max-width: 760px) {
+    .detail-grid { grid-template-columns: 1fr; }
+    .sidebar { position: static; }
+}
 </style>
 {% endblock %}
 
 {% block content %}
-<div style="margin-bottom: 1.5rem;">
-    <a href="{% url 'index' %}" class="btn btn-sm">? Back</a>
-</div>
+<div class="detail-grid">
 
-<div class="detail-layout">
-
-    <!-- -- Sidebar -- -->
-    <aside class="sidebar">
-        <div class="paper-info">
-            <h2>{{ paper.title|default:"Untitled Paper" }}</h2>
-            <div class="meta-row">
-                <span class="meta-item">{{ paper.chunk_count }} chunks indexed</span>
-                <span class="meta-item">Uploaded {{ paper.created_at|date:"d M Y" }}</span>
+    <!-- ── Main ── -->
+    <div class="main-col">
+        <div class="paper-header">
+            <a href="{% url 'index' %}" class="back-link">← All Papers</a>
+            <h1 class="paper-title">{{ paper.title|default:"Untitled Paper" }}</h1>
+            <div class="paper-meta-row">
+                <span class="badge badge-green">{{ paper.chunk_count }} chunks</span>
+                <span class="badge">{{ paper.created_at|date:"d M Y" }}</span>
             </div>
         </div>
 
-        <div class="section-label">Mode</div>
-        <div class="mode-grid">
-            <button class="mode-btn active" data-mode="qa">Q&amp;A</button>
-            <button class="mode-btn" data-mode="summarise">Summarise</button>
-            <button class="mode-btn" data-mode="critique">Critique</button>
-            <button class="mode-btn" data-mode="compare">Compare</button>
+        <!-- Mode bar -->
+        <div class="mode-bar" id="mode-bar">
+            <button class="mode-btn active" data-mode="qa" data-desc="Ask any question — answers grounded in the paper's content">Q&amp;A</button>
+            <button class="mode-btn" data-mode="summarise" data-desc="Get a structured summary: contribution, method, findings, limits">Summary</button>
+            <button class="mode-btn" data-mode="critique" data-desc="Peer-review style critique: assumptions, weaknesses, gaps">Critique</button>
+            <button class="mode-btn" data-mode="compare" data-desc="Compare selected papers on approach, method, strengths">Compare</button>
+        </div>
+        <div class="mode-desc" id="mode-desc">Ask any question — answers grounded in the paper's content</div>
+
+        <!-- Quick actions -->
+        <div class="quick-bar">
+            <button class="quick-btn" onclick="quickAsk('What is the main contribution of this paper?')">Main contribution</button>
+            <button class="quick-btn" onclick="quickAsk('What methodology does this paper use?')">Methodology</button>
+            <button class="quick-btn" onclick="quickAsk('What are the key experimental results?')">Results</button>
+            <button class="quick-btn" onclick="quickAsk('What are the limitations of this work?')">Limitations</button>
+            <button class="quick-btn" onclick="quickAsk('What future work do the authors suggest?')">Future work</button>
+            <button class="quick-btn" onclick="quickAsk('What datasets were used in experiments?')">Datasets</button>
         </div>
 
-        <div class="section-label">Quick prompts</div>
-        <div class="quick-btns">
-            <button class="quick-btn" data-prompt="What is the main contribution of this paper?">Main contribution</button>
-            <button class="quick-btn" data-prompt="What methodology does this paper use?">Methodology</button>
-            <button class="quick-btn" data-prompt="What are the key findings and results?">Key findings</button>
-            <button class="quick-btn" data-prompt="What are the limitations of this paper?">Limitations</button>
-            <button class="quick-btn" data-prompt="Suggest future research directions based on this paper.">Future work</button>
+        <!-- Input -->
+        <div class="ask-form">
+            <input class="ask-input" type="text" id="question-input" placeholder="Ask anything about this paper..." autocomplete="off" onkeydown="if(event.key==='Enter')submitQ()">
+            <button class="ask-send" onclick="submitQ()" title="Send">→</button>
         </div>
 
-        <div class="compare-section" id="compare-section" style="display:none;">
-            <div class="section-label">Compare with</div>
-            <select id="compare-paper-select">
-                <option value="">Select a paper...</option>
-                {% for p in all_papers %}
-                    {% if p.pk != paper.pk %}
-                    <option value="{{ p.pk }}">{{ p.title|default:"Untitled"|truncatechars:40 }}</option>
-                    {% endif %}
-                {% endfor %}
-            </select>
-        </div>
-
-        <hr class="divider">
-
-        <form method="POST" action="{% url 'delete_paper' paper.pk %}" onsubmit="return confirm('Delete this paper?')">
-            {% csrf_token %}
-            <button type="submit" class="delete-link" style="background:none;border:none;cursor:pointer;padding:0;">
-                Delete paper
-            </button>
-        </form>
-    </aside>
-
-    <!-- -- Chat -- -->
-    <div class="chat-area">
+        <!-- Messages -->
         <div class="messages" id="messages">
-            <div class="empty-chat" id="empty-chat">
-                <p>Ask a question or choose a quick prompt.</p>
+            <div class="chat-empty" id="chat-empty">
+                <p>Select a mode above, then ask a question or use a quick action.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Sidebar ── -->
+    <div class="sidebar">
+        <div class="side-panel">
+            <div class="side-head">Paper Info</div>
+            <div class="side-body">
+                <div class="stat"><span class="stat-k">Chunks</span><span class="stat-v">{{ paper.chunk_count }}</span></div>
+                <div class="stat"><span class="stat-k">Processed</span><span class="stat-v">{{ paper.created_at|date:"d M y" }}</span></div>
+                <div class="stat"><span class="stat-k">Model</span><span class="stat-v">claude-sonnet</span></div>
+                <div class="stat"><span class="stat-k">Embeddings</span><span class="stat-v">MiniLM-L6</span></div>
             </div>
         </div>
 
-        <div class="thinking" id="thinking">
-            <div class="thinking-dots">
-                <span></span><span></span><span></span>
+        <div class="side-panel">
+            <div class="side-head">
+                <span>Papers in Query</span>
+                <span class="badge badge-green" id="selected-count">1</span>
             </div>
-            <span>Analysing...</span>
+            <div class="side-body">
+                {% for p in all_papers %}
+                <div class="compare-item">
+                    <input type="checkbox" id="p{{ p.pk }}" value="{{ p.pk }}" {% if p.pk == paper.pk %}checked disabled{% endif %}>
+                    <label for="p{{ p.pk }}" class="{% if p.pk == paper.pk %}is-current{% endif %}" title="{{ p.title }}">
+                        {% if p.pk == paper.pk %}★ {% endif %}{{ p.title|truncatechars:36 }}
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
         </div>
 
-        <div class="input-area">
-            <div class="input-row">
-                <textarea
-                    id="question-input"
-                    placeholder="Ask anything about this paper..."
-                    rows="1"
-                ></textarea>
-                <button class="btn btn-primary" id="ask-btn">Ask ?</button>
+        <div class="side-panel">
+            <div class="side-head">Actions</div>
+            <div class="side-body">
+                <div class="action-row">
+                    <a href="{% url 'index' %}" class="btn btn-sm">← All Papers</a>
+                    <form method="POST" action="{% url 'delete_paper' paper.pk %}" onsubmit="return confirm('Delete this paper and all its chunks?')">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-danger" style="width:100%">Delete Paper</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-    const PAPER_ID = {{ paper.pk }};
-    let currentMode = 'qa';
+let currentMode = 'qa';
 
-    // -- Mode buttons --
-    document.querySelectorAll('.mode-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            currentMode = btn.dataset.mode;
-            document.getElementById('compare-section').style.display =
-                currentMode === 'compare' ? 'block' : 'none';
+// Mode tabs
+document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentMode = btn.dataset.mode;
+        document.getElementById('mode-desc').textContent = btn.dataset.desc;
+
+        if (currentMode === 'summarise') {
+            quickAsk('Provide a full structured summary of this paper covering contribution, methodology, key findings, and limitations.');
+        } else if (currentMode === 'critique') {
+            quickAsk('Critically evaluate this paper. Identify core assumptions, methodological weaknesses, missing experiments, and suggest concrete improvements.');
+        }
+    });
+});
+
+// Selected count
+function updateCount() {
+    const n = document.querySelectorAll('.compare-item input:checked').length;
+    document.getElementById('selected-count').textContent = n;
+}
+document.querySelectorAll('.compare-item input:not([disabled])').forEach(cb => {
+    cb.addEventListener('change', updateCount);
+});
+
+function getSelectedIds() {
+    return [...document.querySelectorAll('.compare-item input:checked')].map(i => parseInt(i.value));
+}
+
+function quickAsk(text) {
+    document.getElementById('question-input').value = text;
+    submitQ();
+}
+
+function submitQ() {
+    const input = document.getElementById('question-input');
+    const q = input.value.trim();
+    if (!q) return;
+
+    const ids = getSelectedIds();
+    if (!ids.length) { alert('Select at least one paper.'); return; }
+
+    clearEmpty();
+    addUserMsg(q);
+    input.value = '';
+
+    const thinkId = 'think-' + Date.now();
+    addThinking(thinkId);
+
+    fetch('/api/ask/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken()},
+        body: JSON.stringify({question: q, paper_ids: ids, mode: currentMode}),
+    })
+    .then(r => r.json())
+    .then(data => {
+        removeEl(thinkId);
+        if (data.error) {
+            addAssistantMsg('⚠ ' + data.error, currentMode, []);
+        } else {
+            addAssistantMsg(data.answer, currentMode, data.sources || []);
+        }
+    })
+    .catch(err => {
+        removeEl(thinkId);
+        addAssistantMsg('⚠ Request failed: ' + err.message, currentMode, []);
+    });
+}
+
+function clearEmpty() {
+    const e = document.getElementById('chat-empty');
+    if (e) e.remove();
+}
+
+function addUserMsg(text) {
+    const msgs = document.getElementById('messages');
+    const div = document.createElement('div');
+    div.className = 'msg msg-user';
+    div.innerHTML = `<div class="msg-head"><span class="msg-role">You</span></div><div class="msg-body">${esc(text)}</div>`;
+    msgs.appendChild(div);
+    div.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function addAssistantMsg(text, mode, sources) {
+    const msgs = document.getElementById('messages');
+    const div = document.createElement('div');
+    div.className = 'msg msg-assistant';
+
+    const sourcesHtml = sources.length ? buildSources(sources) : '';
+
+    div.innerHTML = `
+        <div class="msg-head">
+            <span class="msg-role">Claude</span>
+            <span class="msg-mode">${mode}</span>
+        </div>
+        <div class="msg-body">${renderMarkdown(text)}</div>
+        ${sourcesHtml}
+    `;
+    msgs.appendChild(div);
+
+    // Toggle sources
+    const hd = div.querySelector('.sources-hd');
+    if (hd) {
+        hd.addEventListener('click', () => {
+            hd.classList.toggle('collapsed');
+            div.querySelector('.source-list').classList.toggle('collapsed');
         });
-    });
-
-    // -- Quick prompts --
-    document.querySelectorAll('.quick-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.getElementById('question-input').value = btn.dataset.prompt;
-            submitQuestion();
-        });
-    });
-
-    // -- Send on Enter (Shift+Enter for newline) --
-    document.getElementById('question-input').addEventListener('keydown', e => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            submitQuestion();
-        }
-    });
-
-    document.getElementById('ask-btn').addEventListener('click', submitQuestion);
-
-    // -- Submit --
-    async function submitQuestion() {
-        const input = document.getElementById('question-input');
-        const question = input.value.trim();
-        if (!question) return;
-
-        let paperIds = [PAPER_ID];
-        if (currentMode === 'compare') {
-            const sel = document.getElementById('compare-paper-select').value;
-            if (sel) paperIds.push(parseInt(sel));
-        }
-
-        appendMessage('user', question);
-        input.value = '';
-        setThinking(true);
-
-        try {
-            const res = await fetch('/api/ask/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken'),
-                },
-                body: JSON.stringify({
-                    question,
-                    paper_ids: paperIds,
-                    mode: currentMode,
-                }),
-            });
-
-            const data = await res.json();
-            setThinking(false);
-
-            if (data.error) {
-                appendMessage('assistant', `Error: ${data.error}`);
-            } else {
-                appendMessage('assistant', data.answer, data.sources);
-            }
-        } catch (err) {
-            setThinking(false);
-            appendMessage('assistant', 'Something went wrong. Please try again.');
-        }
     }
 
-    // -- Render message --
-    function appendMessage(role, text, sources = []) {
-        document.getElementById('empty-chat')?.remove();
+    div.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
 
-        const msg = document.createElement('div');
-        msg.className = 'message';
+function buildSources(sources) {
+    const items = sources.map(s => `
+        <div class="source-item">
+            <div class="source-page">p.${s.page} — ${esc(s.paper_title || '')}</div>
+            ${esc(s.text)}
+        </div>
+    `).join('');
+    return `<div class="sources">
+        <div class="sources-hd">Sources (${sources.length})</div>
+        <div class="source-list">${items}</div>
+    </div>`;
+}
 
-        const roleEl = document.createElement('div');
-        roleEl.className = `message-role ${role}`;
-        roleEl.textContent = role === 'user' ? 'You' : 'Assistant';
+function addThinking(id) {
+    const msgs = document.getElementById('messages');
+    const div = document.createElement('div');
+    div.id = id;
+    div.className = 'thinking';
+    div.innerHTML = `Retrieving context<span class="thinking-dots"> <span>.</span><span>.</span><span>.</span></span>`;
+    msgs.appendChild(div);
+}
 
-        const body = document.createElement('div');
-        body.className = 'message-body';
-        body.innerHTML = formatText(text);
+function removeEl(id) { const e = document.getElementById(id); if (e) e.remove(); }
 
-        msg.appendChild(roleEl);
-        msg.appendChild(body);
+function renderMarkdown(text) {
+    // Minimal: bold **text**, inline code `code`, newlines
+    return esc(text)
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/`(.+?)`/g, '<code style="font-family:var(--mono);font-size:11px;background:var(--surface-2);border:1px solid var(--border);padding:1px 5px;">$1</code>');
+}
 
-        if (sources.length > 0) {
-            const sourcesEl = document.createElement('div');
-            sourcesEl.className = 'sources';
-            sources.forEach(s => {
-                const chip = document.createElement('div');
-                chip.className = 'source-chip';
-                chip.innerHTML = `<span class="page-ref">p.${s.page}</span><span>${escapeHtml(s.text)}</span>`;
-                sourcesEl.appendChild(chip);
-            });
-            msg.appendChild(sourcesEl);
-        }
+function esc(str) {
+    return String(str)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
-        document.getElementById('messages').appendChild(msg);
-        msg.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    }
-
-    function setThinking(on) {
-        document.getElementById('thinking').classList.toggle('active', on);
-        document.getElementById('ask-btn').disabled = on;
-    }
-
-    // -- Minimal markdown: bold, bullet lists --
-    function formatText(text) {
-        return text
-            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/^[�\-\*] (.+)$/gm, '<li>$1</li>')
-            .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
-            .replace(/\n\n/g, '</p><p>')
-            .replace(/^(?!<)(.+)$/gm, '<p>$1</p>');
-    }
-
-    function escapeHtml(str) {
-        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
-
-    function getCookie(name) {
-        const v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
-        return v ? v[2] : null;
-    }
+function csrfToken() {
+    const v = document.cookie.match('(^|;) ?csrftoken=([^;]*)');
+    return v ? v[2] : '';
+}
 </script>
 {% endblock %}

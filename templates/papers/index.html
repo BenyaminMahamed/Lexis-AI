@@ -1,279 +1,171 @@
 {% extends 'base.html' %}
-
-{% block title %}Research Assistant — Papers{% endblock %}
+{% block title %}Lexis — Papers{% endblock %}
 
 {% block extra_css %}
 <style>
-    .page-header {
-        margin-bottom: 3rem;
-    }
+.page-hero { margin-bottom: 3rem; }
+.hero-kicker { font-family: var(--mono); font-size: 10px; color: var(--accent); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
+.hero-kicker::before { content: ''; display: block; width: 20px; height: 1px; background: var(--accent); }
+.hero-title { font-family: var(--serif); font-size: clamp(2.2rem, 5vw, 3.4rem); font-weight: 400; line-height: 1.12; color: var(--text); margin-bottom: 0.6rem; }
+.hero-title em { color: var(--accent); font-style: italic; }
+.hero-sub { font-size: 13px; color: var(--text-2); max-width: 440px; }
 
-    .page-header h1 {
-        font-family: var(--serif);
-        font-size: 2.8rem;
-        font-weight: 400;
-        line-height: 1.15;
-        margin-bottom: 0.5rem;
-    }
+/* Upload */
+.upload-area { margin-bottom: 3.5rem; }
+.drop-zone { border: 1px dashed var(--border-2); background: var(--surface); padding: 2.5rem 2rem; text-align: center; cursor: pointer; transition: 0.2s ease; position: relative; }
+.drop-zone:hover, .drop-zone.over { border-color: var(--accent); background: var(--accent-dim); }
+.drop-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.drop-icon { width: 40px; height: 40px; border: 1px solid var(--border-2); display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; transition: 0.2s ease; font-size: 16px; color: var(--text-3); }
+.drop-zone:hover .drop-icon, .drop-zone.over .drop-icon { border-color: var(--accent); color: var(--accent); }
+.drop-title { font-family: var(--mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-2); margin-bottom: 0.3rem; }
+.drop-sub { font-size: 11px; color: var(--text-3); font-family: var(--mono); margin-bottom: 1.2rem; }
+.drop-file-name { font-family: var(--mono); font-size: 11px; color: var(--accent); margin-top: 0.5rem; }
+.upload-btn-row { position: relative; z-index: 2; display: flex; justify-content: center; }
 
-    .page-header h1 em {
-        font-style: italic;
-        color: var(--accent);
-    }
+/* Progress bar */
+.progress-track { height: 2px; background: var(--border); margin-top: 1rem; overflow: hidden; display: none; }
+.progress-bar { height: 100%; background: var(--accent); width: 0; transition: width 0.4s ease; }
 
-    .page-header p {
-        color: var(--text-muted);
-        font-size: 14px;
-        font-family: var(--mono);
-    }
+/* Papers list */
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.section-label { font-family: var(--mono); font-size: 10px; color: var(--text-3); letter-spacing: 0.1em; text-transform: uppercase; }
 
-    /* Upload zone */
-    .upload-zone {
-        border: 1px dashed var(--border);
-        padding: 2.5rem;
-        text-align: center;
-        position: relative;
-        transition: all 0.2s;
-        cursor: pointer;
-        margin-bottom: 3rem;
-    }
+.papers-list { display: flex; flex-direction: column; gap: 1px; background: var(--border); }
+.paper-row { background: var(--surface); display: flex; align-items: center; gap: 1.5rem; padding: 1rem 1.25rem; text-decoration: none; color: inherit; transition: 0.15s ease; border-left: 2px solid transparent; }
+.paper-row:hover { background: var(--surface-2); border-left-color: var(--accent); }
+.paper-row-num { font-family: var(--mono); font-size: 10px; color: var(--text-3); min-width: 24px; }
+.paper-row-title { flex: 1; font-family: var(--serif); font-size: 1.05rem; color: var(--text); }
+.paper-row-meta { display: flex; align-items: center; gap: 0.6rem; }
+.paper-row-arrow { font-size: 16px; color: var(--text-3); transition: 0.15s ease; opacity: 0; transform: translateX(-6px); }
+.paper-row:hover .paper-row-arrow { opacity: 1; transform: translateX(0); color: var(--accent); }
 
-    .upload-zone:hover, .upload-zone.drag-over {
-        border-color: var(--accent);
-        background: var(--accent-dim);
-    }
+.empty-state { padding: 4rem 2rem; text-align: center; border: 1px dashed var(--border); }
+.empty-state p { font-family: var(--mono); font-size: 11px; color: var(--text-3); }
 
-    .upload-zone input[type="file"] {
-        position: absolute;
-        inset: 0;
-        opacity: 0;
-        cursor: pointer;
-        width: 100%;
-    }
-
-    .upload-icon {
-        font-size: 2rem;
-        margin-bottom: 1rem;
-        opacity: 0.4;
-    }
-
-    .upload-zone h3 {
-        font-family: var(--mono);
-        font-size: 13px;
-        font-weight: 500;
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-        margin-bottom: 0.4rem;
-    }
-
-    .upload-zone p {
-        font-size: 12px;
-        color: var(--text-muted);
-        font-family: var(--mono);
-    }
-
-    .upload-actions {
-        margin-top: 1.2rem;
-        position: relative;
-        z-index: 2;
-    }
-
-    /* Papers grid */
-    .section-label {
-        font-family: var(--mono);
-        font-size: 11px;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-        color: var(--text-muted);
-        margin-bottom: 1rem;
-    }
-
-    .papers-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 1px;
-        background: var(--border);
-    }
-
-    .paper-card {
-        background: var(--surface);
-        padding: 1.4rem;
-        text-decoration: none;
-        color: inherit;
-        display: block;
-        transition: background 0.15s;
-        position: relative;
-    }
-
-    .paper-card:hover {
-        background: var(--surface-2);
-    }
-
-    .paper-card:hover .paper-arrow {
-        opacity: 1;
-        transform: translateX(0);
-    }
-
-    .paper-title {
-        font-family: var(--serif);
-        font-size: 1rem;
-        line-height: 1.4;
-        margin-bottom: 0.8rem;
-        padding-right: 1.5rem;
-    }
-
-    .paper-meta {
-        display: flex;
-        align-items: center;
-        gap: 0.6rem;
-        flex-wrap: wrap;
-    }
-
-    .paper-date {
-        font-family: var(--mono);
-        font-size: 11px;
-        color: var(--text-muted);
-    }
-
-    .paper-arrow {
-        position: absolute;
-        top: 1.4rem;
-        right: 1.2rem;
-        font-size: 1rem;
-        opacity: 0;
-        transform: translateX(-4px);
-        transition: all 0.2s;
-        color: var(--accent);
-    }
-
-    .empty-state {
-        padding: 4rem 2rem;
-        text-align: center;
-    }
-
-    .empty-state p {
-        font-family: var(--mono);
-        font-size: 13px;
-        color: var(--text-muted);
-        margin-bottom: 0.4rem;
-    }
-
-    /* Loading overlay */
-    .uploading-overlay {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(13,13,13,0.85);
-        z-index: 999;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-        gap: 1rem;
-    }
-
-    .uploading-overlay.active {
-        display: flex;
-    }
-
-    .spinner {
-        width: 36px;
-        height: 36px;
-        border: 2px solid var(--border);
-        border-top-color: var(--accent);
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-    }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .uploading-overlay p {
-        font-family: var(--mono);
-        font-size: 13px;
-        color: var(--text-muted);
-    }
+/* Processing overlay */
+.process-overlay { display: none; position: fixed; inset: 0; background: rgba(8,11,15,0.88); backdrop-filter: blur(8px); z-index: 100; flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem; }
+.process-overlay.active { display: flex; }
+.process-spinner { width: 32px; height: 32px; border: 1px solid var(--border-2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.process-label { font-family: var(--mono); font-size: 11px; color: var(--text-2); letter-spacing: 0.08em; }
+.process-steps { display: flex; flex-direction: column; gap: 0.4rem; }
+.process-step { font-family: var(--mono); font-size: 10px; color: var(--text-3); letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.5rem; transition: color 0.3s; }
+.process-step.active { color: var(--accent); }
+.process-step::before { content: '○'; font-size: 8px; }
+.process-step.active::before { content: '●'; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1>Your <em>research</em>,<br>understood.</h1>
-    <p>Upload papers. Ask questions. Get answers.</p>
+<div class="page-hero animate-in">
+    <div class="hero-kicker">AI Research Assistant</div>
+    <h1 class="hero-title">Understand papers<br>at <em>depth</em>.</h1>
+    <p class="hero-sub">Upload academic PDFs. Ask questions, generate summaries, and critique arguments — powered by Claude and semantic search.</p>
 </div>
 
-{% if error %}
-<div class="alert">{{ error }}</div>
-{% endif %}
+{% if error %}<div class="alert">{{ error }}</div>{% endif %}
+
+<div class="demo-banner">
+    <span>⚡</span>
+    <span>Demo mode active — RAG pipeline is fully functional. Add <code style="background:rgba(255,255,255,0.08);padding:0 4px;">ANTHROPIC_API_KEY</code> to <code style="background:rgba(255,255,255,0.08);padding:0 4px;">.env</code> to enable Claude responses.</span>
+</div>
 
 <!-- Upload -->
-<form method="POST" action="{% url 'upload_paper' %}" enctype="multipart/form-data" id="upload-form">
-    {% csrf_token %}
-    <div class="upload-zone" id="upload-zone">
-        <input type="file" name="pdf_file" accept=".pdf" id="pdf-input" required>
-        <div class="upload-icon">⬆</div>
-        <h3>Drop a PDF here</h3>
-        <p id="file-label">or click to browse</p>
-        <div class="upload-actions">
-            <button type="submit" class="btn btn-primary">Process Paper →</button>
+<div class="upload-area">
+    <form method="POST" action="{% url 'upload_paper' %}" enctype="multipart/form-data" id="upload-form">
+        {% csrf_token %}
+        <div class="drop-zone" id="drop-zone">
+            <input type="file" name="pdf_file" accept=".pdf" id="pdf-input" required>
+            <div class="drop-icon">↑</div>
+            <div class="drop-title">Drop PDF here</div>
+            <div class="drop-sub" id="drop-label">or click to select a file</div>
+            <div class="drop-file-name" id="file-name-display" style="display:none"></div>
+            <div class="upload-btn-row">
+                <button type="submit" class="btn btn-primary" id="submit-btn">Process Paper →</button>
+            </div>
         </div>
-    </div>
-</form>
+        <div class="progress-track" id="progress-track">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+    </form>
+</div>
 
-<!-- Papers list -->
+<!-- Papers -->
 {% if papers %}
-<div class="section-label">{{ papers|length }} paper{{ papers|length|pluralize }} loaded</div>
-<div class="papers-grid">
+<div class="section-header">
+    <span class="section-label">{{ papers|length }} paper{{ papers|length|pluralize }} indexed</span>
+</div>
+<div class="papers-list">
     {% for paper in papers %}
-    <a href="{% url 'paper_detail' paper.pk %}" class="paper-card">
-        <div class="paper-title">{{ paper.title|default:"Untitled Paper" }}</div>
-        <div class="paper-meta">
+    <a href="{% url 'paper_detail' paper.pk %}" class="paper-row animate-in" style="animation-delay: {{ forloop.counter0 }}00ms">
+        <span class="paper-row-num">{{ forloop.counter|stringformat:"02d" }}</span>
+        <span class="paper-row-title">{{ paper.title|default:"Untitled Paper"|truncatechars:80 }}</span>
+        <div class="paper-row-meta">
             {% if paper.processed %}
-            <span class="tag tag-green">{{ paper.chunk_count }} chunks</span>
+            <span class="badge badge-green">{{ paper.chunk_count }} chunks</span>
             {% else %}
-            <span class="tag">Processing...</span>
+            <span class="badge badge-yellow">processing</span>
             {% endif %}
-            <span class="paper-date">{{ paper.created_at|date:"d M Y" }}</span>
+            <span class="badge">{{ paper.created_at|date:"d M y" }}</span>
         </div>
-        <div class="paper-arrow">→</div>
+        <span class="paper-row-arrow">→</span>
     </a>
     {% endfor %}
 </div>
 {% else %}
 <div class="empty-state">
-    <p>No papers yet.</p>
-    <p>Upload your first PDF above.</p>
+    <p>No papers yet — upload your first PDF above.</p>
 </div>
 {% endif %}
 
-<!-- Loading overlay -->
-<div class="uploading-overlay" id="uploading-overlay">
-    <div class="spinner"></div>
-    <p>Extracting · Chunking · Embedding...</p>
+<!-- Processing overlay -->
+<div class="process-overlay" id="process-overlay">
+    <div class="process-spinner"></div>
+    <div class="process-steps">
+        <div class="process-step active" id="step-extract">Extracting text from PDF</div>
+        <div class="process-step" id="step-chunk">Chunking into segments</div>
+        <div class="process-step" id="step-embed">Generating embeddings</div>
+        <div class="process-step" id="step-index">Indexing in FAISS</div>
+    </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-    const form = document.getElementById('upload-form');
-    const input = document.getElementById('pdf-input');
-    const label = document.getElementById('file-label');
-    const zone = document.getElementById('upload-zone');
-    const overlay = document.getElementById('uploading-overlay');
+const form = document.getElementById('upload-form');
+const input = document.getElementById('pdf-input');
+const dropZone = document.getElementById('drop-zone');
+const dropLabel = document.getElementById('drop-label');
+const fileDisplay = document.getElementById('file-name-display');
+const overlay = document.getElementById('process-overlay');
+const steps = ['step-extract','step-chunk','step-embed','step-index'];
+let stepIdx = 0;
 
-    input.addEventListener('change', () => {
-        if (input.files[0]) label.textContent = input.files[0].name;
-    });
+function showFile(name) {
+    dropLabel.style.display = 'none';
+    fileDisplay.textContent = name;
+    fileDisplay.style.display = 'block';
+}
 
-    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
-    zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
-    zone.addEventListener('drop', e => {
-        e.preventDefault();
-        zone.classList.remove('drag-over');
-        if (e.dataTransfer.files[0]) {
-            input.files = e.dataTransfer.files;
-            label.textContent = e.dataTransfer.files[0].name;
-        }
-    });
+input.addEventListener('change', () => { if (input.files[0]) showFile(input.files[0].name); });
 
-    form.addEventListener('submit', () => {
-        overlay.classList.add('active');
-    });
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('over');
+    if (e.dataTransfer.files[0]) { input.files = e.dataTransfer.files; showFile(e.dataTransfer.files[0].name); }
+});
+
+form.addEventListener('submit', () => {
+    overlay.classList.add('active');
+    // Animate steps sequentially
+    const interval = setInterval(() => {
+        stepIdx++;
+        if (stepIdx < steps.length) {
+            document.getElementById(steps[stepIdx]).classList.add('active');
+        } else { clearInterval(interval); }
+    }, 1800);
+});
 </script>
 {% endblock %}
