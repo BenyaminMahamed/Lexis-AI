@@ -1,0 +1,279 @@
+{% extends 'base.html' %}
+
+{% block title %}Research Assistant — Papers{% endblock %}
+
+{% block extra_css %}
+<style>
+    .page-header {
+        margin-bottom: 3rem;
+    }
+
+    .page-header h1 {
+        font-family: var(--serif);
+        font-size: 2.8rem;
+        font-weight: 400;
+        line-height: 1.15;
+        margin-bottom: 0.5rem;
+    }
+
+    .page-header h1 em {
+        font-style: italic;
+        color: var(--accent);
+    }
+
+    .page-header p {
+        color: var(--text-muted);
+        font-size: 14px;
+        font-family: var(--mono);
+    }
+
+    /* Upload zone */
+    .upload-zone {
+        border: 1px dashed var(--border);
+        padding: 2.5rem;
+        text-align: center;
+        position: relative;
+        transition: all 0.2s;
+        cursor: pointer;
+        margin-bottom: 3rem;
+    }
+
+    .upload-zone:hover, .upload-zone.drag-over {
+        border-color: var(--accent);
+        background: var(--accent-dim);
+    }
+
+    .upload-zone input[type="file"] {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+        width: 100%;
+    }
+
+    .upload-icon {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+        opacity: 0.4;
+    }
+
+    .upload-zone h3 {
+        font-family: var(--mono);
+        font-size: 13px;
+        font-weight: 500;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        margin-bottom: 0.4rem;
+    }
+
+    .upload-zone p {
+        font-size: 12px;
+        color: var(--text-muted);
+        font-family: var(--mono);
+    }
+
+    .upload-actions {
+        margin-top: 1.2rem;
+        position: relative;
+        z-index: 2;
+    }
+
+    /* Papers grid */
+    .section-label {
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin-bottom: 1rem;
+    }
+
+    .papers-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1px;
+        background: var(--border);
+    }
+
+    .paper-card {
+        background: var(--surface);
+        padding: 1.4rem;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+        transition: background 0.15s;
+        position: relative;
+    }
+
+    .paper-card:hover {
+        background: var(--surface-2);
+    }
+
+    .paper-card:hover .paper-arrow {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    .paper-title {
+        font-family: var(--serif);
+        font-size: 1rem;
+        line-height: 1.4;
+        margin-bottom: 0.8rem;
+        padding-right: 1.5rem;
+    }
+
+    .paper-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+    }
+
+    .paper-date {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text-muted);
+    }
+
+    .paper-arrow {
+        position: absolute;
+        top: 1.4rem;
+        right: 1.2rem;
+        font-size: 1rem;
+        opacity: 0;
+        transform: translateX(-4px);
+        transition: all 0.2s;
+        color: var(--accent);
+    }
+
+    .empty-state {
+        padding: 4rem 2rem;
+        text-align: center;
+    }
+
+    .empty-state p {
+        font-family: var(--mono);
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-bottom: 0.4rem;
+    }
+
+    /* Loading overlay */
+    .uploading-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(13,13,13,0.85);
+        z-index: 999;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .uploading-overlay.active {
+        display: flex;
+    }
+
+    .spinner {
+        width: 36px;
+        height: 36px;
+        border: 2px solid var(--border);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .uploading-overlay p {
+        font-family: var(--mono);
+        font-size: 13px;
+        color: var(--text-muted);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Your <em>research</em>,<br>understood.</h1>
+    <p>Upload papers. Ask questions. Get answers.</p>
+</div>
+
+{% if error %}
+<div class="alert">{{ error }}</div>
+{% endif %}
+
+<!-- Upload -->
+<form method="POST" action="{% url 'upload_paper' %}" enctype="multipart/form-data" id="upload-form">
+    {% csrf_token %}
+    <div class="upload-zone" id="upload-zone">
+        <input type="file" name="pdf_file" accept=".pdf" id="pdf-input" required>
+        <div class="upload-icon">⬆</div>
+        <h3>Drop a PDF here</h3>
+        <p id="file-label">or click to browse</p>
+        <div class="upload-actions">
+            <button type="submit" class="btn btn-primary">Process Paper →</button>
+        </div>
+    </div>
+</form>
+
+<!-- Papers list -->
+{% if papers %}
+<div class="section-label">{{ papers|length }} paper{{ papers|length|pluralize }} loaded</div>
+<div class="papers-grid">
+    {% for paper in papers %}
+    <a href="{% url 'paper_detail' paper.pk %}" class="paper-card">
+        <div class="paper-title">{{ paper.title|default:"Untitled Paper" }}</div>
+        <div class="paper-meta">
+            {% if paper.processed %}
+            <span class="tag tag-green">{{ paper.chunk_count }} chunks</span>
+            {% else %}
+            <span class="tag">Processing...</span>
+            {% endif %}
+            <span class="paper-date">{{ paper.created_at|date:"d M Y" }}</span>
+        </div>
+        <div class="paper-arrow">→</div>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <p>No papers yet.</p>
+    <p>Upload your first PDF above.</p>
+</div>
+{% endif %}
+
+<!-- Loading overlay -->
+<div class="uploading-overlay" id="uploading-overlay">
+    <div class="spinner"></div>
+    <p>Extracting · Chunking · Embedding...</p>
+</div>
+
+<script>
+    const form = document.getElementById('upload-form');
+    const input = document.getElementById('pdf-input');
+    const label = document.getElementById('file-label');
+    const zone = document.getElementById('upload-zone');
+    const overlay = document.getElementById('uploading-overlay');
+
+    input.addEventListener('change', () => {
+        if (input.files[0]) label.textContent = input.files[0].name;
+    });
+
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+    zone.addEventListener('drop', e => {
+        e.preventDefault();
+        zone.classList.remove('drag-over');
+        if (e.dataTransfer.files[0]) {
+            input.files = e.dataTransfer.files;
+            label.textContent = e.dataTransfer.files[0].name;
+        }
+    });
+
+    form.addEventListener('submit', () => {
+        overlay.classList.add('active');
+    });
+</script>
+{% endblock %}

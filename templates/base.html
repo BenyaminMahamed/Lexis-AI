@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Research Assistant{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0d0d0d;
+            --surface: #141414;
+            --surface-2: #1a1a1a;
+            --border: #2a2a2a;
+            --accent: #c8f560;
+            --accent-dim: rgba(200, 245, 96, 0.12);
+            --text: #e8e8e0;
+            --text-muted: #666;
+            --text-dim: #999;
+            --red: #ff4757;
+            --mono: 'IBM Plex Mono', monospace;
+            --sans: 'IBM Plex Sans', sans-serif;
+            --serif: 'Playfair Display', serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--sans);
+            font-size: 15px;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* ── Nav ── */
+        nav {
+            border-bottom: 1px solid var(--border);
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 56px;
+            position: sticky;
+            top: 0;
+            background: var(--bg);
+            z-index: 100;
+        }
+
+        .nav-brand {
+            font-family: var(--mono);
+            font-size: 13px;
+            color: var(--accent);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            text-decoration: none;
+        }
+
+        .nav-brand span {
+            color: var(--text-muted);
+        }
+
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 13px;
+            font-family: var(--mono);
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover { color: var(--text); }
+
+        /* ── Layout ── */
+        main { max-width: 1100px; margin: 0 auto; padding: 3rem 2rem; }
+
+        /* ── Buttons ── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.55rem 1.2rem;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text);
+            font-family: var(--mono);
+            font-size: 12px;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #0d0d0d;
+            font-weight: 500;
+        }
+
+        .btn-primary:hover {
+            background: #d4ff6a;
+            border-color: #d4ff6a;
+            color: #0d0d0d;
+        }
+
+        .btn-sm { padding: 0.35rem 0.8rem; font-size: 11px; }
+
+        /* ── Cards ── */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+        }
+
+        /* ── Tag ── */
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.2rem 0.6rem;
+            font-family: var(--mono);
+            font-size: 11px;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+        }
+
+        .tag-green {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-dim);
+        }
+
+        /* ── Alert ── */
+        .alert {
+            padding: 1rem 1.2rem;
+            border-left: 3px solid var(--red);
+            background: rgba(255,71,87,0.08);
+            font-size: 13px;
+            margin-bottom: 1.5rem;
+            font-family: var(--mono);
+        }
+
+        /* ── Divider ── */
+        .divider {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 2rem 0;
+        }
+
+        /* ── Mono text ── */
+        .mono { font-family: var(--mono); }
+
+        /* ── Responsive ── */
+        @media (max-width: 600px) {
+            nav { padding: 0 1rem; }
+            main { padding: 2rem 1rem; }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <nav>
+        <a href="/" class="nav-brand">Research<span>/</span>Assistant</a>
+        <div class="nav-links">
+            <a href="/">Papers</a>
+        </div>
+    </nav>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>
