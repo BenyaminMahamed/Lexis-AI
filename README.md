@@ -20,7 +20,6 @@ A full-stack **Retrieval-Augmented Generation (RAG)** platform designed to facil
 
 ## 📂 Project Structure
 
-```text
 ├── config/              # Core Django configurations (Settings, WSGI, ASGI)
 ├── papers/
 │   ├── models.py        # Relational schema for Papers and Text Chunks
@@ -30,7 +29,8 @@ A full-stack **Retrieval-Augmented Generation (RAG)** platform designed to facil
 ├── media/               # Persistent storage for uploaded PDF assets
 ├── faiss_index/         # Serialized local vector database
 └── manage.py            # Project execution entry point
-⚙️ Installation & Setup
+
+## ⚙️ Installation & Setup
 Clone the Repository
 
 PowerShell
@@ -55,11 +55,11 @@ SECRET_KEY=your_django_secret_key
 OPENAI_API_KEY=your_api_key_here
 Initialize Database & Launch
 
-PowerShell
 python manage.py makemigrations papers
 python manage.py migrate
 python manage.py runserver
-🧠 Architectural Workflow (The RAG Pipeline)
+
+## 🧠 Architectural Workflow (The RAG Pipeline)
 Ingestion & Preprocessing: PDFs are parsed and divided into overlapping semantic chunks to preserve context across boundaries.
 
 Vectorization: Each chunk is passed through a transformer model to generate a unique numerical embedding.
@@ -70,7 +70,7 @@ Retrieval: User queries are embedded in real-time; the system performs a "neares
 
 Augmented Generation: The retrieved context is fed into the LLM as a "grounding truth," ensuring generated answers are strictly based on the uploaded research.
 
-👨‍💻 Author
+## 👨‍💻 Author
 Benyamin Mahamed
 
 BSc Computer Science @ University of Westminster (Predicted First-Class)
