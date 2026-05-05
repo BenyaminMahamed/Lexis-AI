@@ -1,0 +1,20 @@
+﻿# Environment & secrets
+.env
+
+# Django
+db.sqlite3
+media/
+__pycache__/
+*.pyc
+*.pyo
+
+# ML artifacts
+faiss_index/
+
+# Virtual environment
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
