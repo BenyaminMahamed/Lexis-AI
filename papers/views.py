@@ -1,6 +1,7 @@
 import json
 import logging
 
+from django.conf import settings
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
@@ -16,7 +17,10 @@ VALID_MODES = {'qa', 'summarise', 'critique', 'compare'}
 def index(request):
     """Homepage — upload form + list of papers."""
     papers = Paper.objects.all()
-    return render(request, 'papers/index.html', {'papers': papers})
+    return render(request, 'papers/index.html', {
+        'papers': papers,
+        'has_api_key': bool(settings.GEMINI_API_KEY),
+    })
 
 
 def upload_paper(request):

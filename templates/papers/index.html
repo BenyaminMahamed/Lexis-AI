@@ -65,12 +65,12 @@
 
 {% if error %}<div class="alert">{{ error }}</div>{% endif %}
 
-<div class="demo-banner">
+{% if not has_api_key %}<div class="demo-banner">
     <span>⚡</span>
     <span>Demo mode active — RAG pipeline is fully functional. Add <code style="background:rgba(255,255,255,0.08);padding:0 4px;">GEMINI_API_KEY</code> to <code style="background:rgba(255,255,255,0.08);padding:0 4px;">.env</code> to enable Gemini responses.</span>
 </div>
 
-<!-- Upload -->
+{% endif %}<!-- Upload -->
 <div class="upload-area">
     <form method="POST" action="{% url 'upload_paper' %}" enctype="multipart/form-data" id="upload-form">
         {% csrf_token %}
