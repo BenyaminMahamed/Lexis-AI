@@ -21,15 +21,21 @@ A full-stack **Retrieval-Augmented Generation (RAG)** platform designed to facil
 ## 📂 Project Structure
 
 ```text
-├── config/              # Core Django configurations (Settings, WSGI, ASGI)
-├── papers/
-│   ├── models.py        # Relational schema for Papers and Text Chunks
-│   ├── pipeline.py      # Core AI Engine (Embeddings, RAG Logic, Semantic Search)
-│   ├── views.py         # App logic for document processing and Q&A endpoints
-│   └── urls.py          # Application-level routing
-├── media/               # Persistent storage for uploaded PDF assets
-├── faiss_index/         # Serialized local vector database
-└── manage.py            # Project execution entry point
+├── config/              # Core Django configurations (Settings, URLs, WSGI, ASGI)
+├── papers/              # Main application logic
+│   ├── migrations/      # Database version history (0001_initial.py)
+│   ├── apps.py          # Application configuration
+│   ├── models.py        # Database schema (Paper, Chunk)
+│   ├── pipeline.py      # AI Engine (Embeddings, FAISS, RAG logic)
+│   ├── urls.py          # App-specific routing
+│   └── views.py         # Request handling and business logic
+├── templates/           # HTML templates
+│   └── papers/          # App-specific templates (base.html, index.html, detail.html)
+├── .env                 # Environment variables (API keys, Secret Key)
+├── db.sqlite3           # Local relational database
+├── manage.py            # Django CLI entry point
+├── README.md            # Project documentation
+└── requirements.txt     # Python dependencies
 ```
 
 ## ⚙️ Installation & Setup
