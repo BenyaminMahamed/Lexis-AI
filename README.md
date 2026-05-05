@@ -33,32 +33,38 @@ A full-stack **Retrieval-Augmented Generation (RAG)** platform designed to facil
 ```
 
 ## ⚙️ Installation & Setup
-Clone the Repository
+1. Clone the Repository
 ```text
 PowerShell
 git clone https://github.com/BenyaminMahamed/AI-Research-Assistant.git
 cd AI-Research-Assistant
 Environment Configuration
 ```
-```text
+2. Environment Configuration
 PowerShell
+```text
 python -m venv venv
 .\venv\Scripts\activate
 Install Dependencies
 ```
-```text
+3. Install Dependencies
 PowerShell
+```text
 pip install -r requirements.txt
 Environment Variables
 Create a .env file in the root directory:
 ```
-```text
+4. Environment Variables
+Create a .env file in the root directory:
 Plaintext
+```text
 DEBUG=True
 SECRET_KEY=your_django_secret_key
 OPENAI_API_KEY=your_api_key_here
 Initialize Database & Launch
 ```
+5. Initialize Database & Launch
+PowerShell
 ```text
 PowerShell
 python manage.py makemigrations papers
