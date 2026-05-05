@@ -41,6 +41,7 @@ cd AI-Research-Assistant
 Environment Configuration
 ```
 2. Environment Configuration
+
 PowerShell
 ```text
 python -m venv venv
@@ -48,6 +49,7 @@ python -m venv venv
 Install Dependencies
 ```
 3. Install Dependencies
+
 PowerShell
 ```text
 pip install -r requirements.txt
@@ -55,7 +57,9 @@ Environment Variables
 Create a .env file in the root directory:
 ```
 4. Environment Variables
+
 Create a .env file in the root directory:
+
 Plaintext
 ```text
 DEBUG=True
@@ -64,6 +68,7 @@ OPENAI_API_KEY=your_api_key_here
 Initialize Database & Launch
 ```
 5. Initialize Database & Launch
+
 PowerShell
 ```text
 PowerShell
