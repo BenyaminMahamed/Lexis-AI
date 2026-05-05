@@ -1,0 +1,507 @@
+{% extends "base.html" %}
+
+{% block title %}{{ paper.title|default:"Paper" }} — Research Assistant{% endblock %}
+
+{% block extra_css %}
+<style>
+    .detail-layout {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        gap: 2rem;
+        align-items: start;
+    }
+
+    /* -- Sidebar -- */
+    .sidebar {}
+
+    .paper-info {
+        margin-bottom: 1.5rem;
+    }
+
+    .paper-info h2 {
+        font-family: var(--serif);
+        font-size: 1.2rem;
+        font-weight: 400;
+        line-height: 1.4;
+        margin-bottom: 0.8rem;
+    }
+
+    .meta-row {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        margin-bottom: 1.2rem;
+    }
+
+    .meta-item {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text-muted);
+    }
+
+    .section-label {
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin-bottom: 0.8rem;
+    }
+
+    .mode-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.4rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .mode-btn {
+        padding: 0.5rem 0.6rem;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--text-muted);
+        font-family: var(--mono);
+        font-size: 11px;
+        cursor: pointer;
+        text-align: left;
+        transition: all 0.15s;
+        letter-spacing: 0.03em;
+    }
+
+    .mode-btn:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+    }
+
+    .mode-btn.active {
+        border-color: var(--accent);
+        background: var(--accent-dim);
+        color: var(--accent);
+    }
+
+    .quick-btns {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .quick-btn {
+        padding: 0.5rem 0.8rem;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--text-dim);
+        font-family: var(--mono);
+        font-size: 11px;
+        cursor: pointer;
+        text-align: left;
+        transition: all 0.15s;
+    }
+
+    .quick-btn:hover {
+        border-color: var(--text-muted);
+        color: var(--text);
+    }
+
+    .compare-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .compare-section select {
+        width: 100%;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        color: var(--text-muted);
+        font-family: var(--mono);
+        font-size: 11px;
+        padding: 0.5rem;
+        margin-bottom: 0.4rem;
+        appearance: none;
+        cursor: pointer;
+    }
+
+    .compare-section select:focus {
+        outline: none;
+        border-color: var(--accent);
+    }
+
+    .delete-link {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text-muted);
+        text-decoration: none;
+        transition: color 0.15s;
+    }
+
+    .delete-link:hover { color: var(--red); }
+
+    /* -- Chat area -- */
+    .chat-area {}
+
+    .messages {
+        min-height: 400px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.2rem;
+    }
+
+    .message {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+
+    .message-role {
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+    }
+
+    .message-role.assistant { color: var(--accent); }
+
+    .message-body {
+        font-size: 14px;
+        line-height: 1.7;
+        color: var(--text);
+    }
+
+    .message-body p { margin-bottom: 0.6rem; }
+    .message-body ul { padding-left: 1.2rem; margin-bottom: 0.6rem; }
+    .message-body li { margin-bottom: 0.3rem; }
+
+    .sources {
+        margin-top: 0.8rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+
+    .source-chip {
+        display: inline-flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+        padding: 0.5rem 0.8rem;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text-muted);
+        line-height: 1.5;
+    }
+
+    .source-chip .page-ref {
+        color: var(--accent);
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    /* -- Input -- */
+    .input-area {
+        border-top: 1px solid var(--border);
+        padding-top: 1.5rem;
+    }
+
+    .input-row {
+        display: flex;
+        gap: 0.6rem;
+    }
+
+    .input-row textarea {
+        flex: 1;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        color: var(--text);
+        font-family: var(--sans);
+        font-size: 14px;
+        padding: 0.8rem 1rem;
+        resize: none;
+        height: 52px;
+        transition: border-color 0.15s;
+        line-height: 1.5;
+    }
+
+    .input-row textarea:focus {
+        outline: none;
+        border-color: var(--accent);
+    }
+
+    .input-row textarea::placeholder { color: var(--text-muted); }
+
+    /* -- Thinking indicator -- */
+    .thinking {
+        display: none;
+        align-items: center;
+        gap: 0.6rem;
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--text-muted);
+        padding: 0.4rem 0;
+    }
+
+    .thinking.active { display: flex; }
+
+    .thinking-dots span {
+        display: inline-block;
+        width: 4px;
+        height: 4px;
+        background: var(--accent);
+        border-radius: 50%;
+        margin: 0 1px;
+        animation: bounce 1.2s infinite;
+    }
+
+    .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes bounce {
+        0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+        40% { transform: translateY(-4px); opacity: 1; }
+    }
+
+    /* -- Empty state -- */
+    .empty-chat {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        min-height: 300px;
+        gap: 0.6rem;
+        opacity: 0.4;
+    }
+
+    .empty-chat p {
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+
+    @media (max-width: 700px) {
+        .detail-layout { grid-template-columns: 1fr; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem;">
+    <a href="{% url 'index' %}" class="btn btn-sm">? Back</a>
+</div>
+
+<div class="detail-layout">
+
+    <!-- -- Sidebar -- -->
+    <aside class="sidebar">
+        <div class="paper-info">
+            <h2>{{ paper.title|default:"Untitled Paper" }}</h2>
+            <div class="meta-row">
+                <span class="meta-item">{{ paper.chunk_count }} chunks indexed</span>
+                <span class="meta-item">Uploaded {{ paper.created_at|date:"d M Y" }}</span>
+            </div>
+        </div>
+
+        <div class="section-label">Mode</div>
+        <div class="mode-grid">
+            <button class="mode-btn active" data-mode="qa">Q&amp;A</button>
+            <button class="mode-btn" data-mode="summarise">Summarise</button>
+            <button class="mode-btn" data-mode="critique">Critique</button>
+            <button class="mode-btn" data-mode="compare">Compare</button>
+        </div>
+
+        <div class="section-label">Quick prompts</div>
+        <div class="quick-btns">
+            <button class="quick-btn" data-prompt="What is the main contribution of this paper?">Main contribution</button>
+            <button class="quick-btn" data-prompt="What methodology does this paper use?">Methodology</button>
+            <button class="quick-btn" data-prompt="What are the key findings and results?">Key findings</button>
+            <button class="quick-btn" data-prompt="What are the limitations of this paper?">Limitations</button>
+            <button class="quick-btn" data-prompt="Suggest future research directions based on this paper.">Future work</button>
+        </div>
+
+        <div class="compare-section" id="compare-section" style="display:none;">
+            <div class="section-label">Compare with</div>
+            <select id="compare-paper-select">
+                <option value="">Select a paper...</option>
+                {% for p in all_papers %}
+                    {% if p.pk != paper.pk %}
+                    <option value="{{ p.pk }}">{{ p.title|default:"Untitled"|truncatechars:40 }}</option>
+                    {% endif %}
+                {% endfor %}
+            </select>
+        </div>
+
+        <hr class="divider">
+
+        <form method="POST" action="{% url 'delete_paper' paper.pk %}" onsubmit="return confirm('Delete this paper?')">
+            {% csrf_token %}
+            <button type="submit" class="delete-link" style="background:none;border:none;cursor:pointer;padding:0;">
+                Delete paper
+            </button>
+        </form>
+    </aside>
+
+    <!-- -- Chat -- -->
+    <div class="chat-area">
+        <div class="messages" id="messages">
+            <div class="empty-chat" id="empty-chat">
+                <p>Ask a question or choose a quick prompt.</p>
+            </div>
+        </div>
+
+        <div class="thinking" id="thinking">
+            <div class="thinking-dots">
+                <span></span><span></span><span></span>
+            </div>
+            <span>Analysing...</span>
+        </div>
+
+        <div class="input-area">
+            <div class="input-row">
+                <textarea
+                    id="question-input"
+                    placeholder="Ask anything about this paper..."
+                    rows="1"
+                ></textarea>
+                <button class="btn btn-primary" id="ask-btn">Ask ?</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const PAPER_ID = {{ paper.pk }};
+    let currentMode = 'qa';
+
+    // -- Mode buttons --
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentMode = btn.dataset.mode;
+            document.getElementById('compare-section').style.display =
+                currentMode === 'compare' ? 'block' : 'none';
+        });
+    });
+
+    // -- Quick prompts --
+    document.querySelectorAll('.quick-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('question-input').value = btn.dataset.prompt;
+            submitQuestion();
+        });
+    });
+
+    // -- Send on Enter (Shift+Enter for newline) --
+    document.getElementById('question-input').addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            submitQuestion();
+        }
+    });
+
+    document.getElementById('ask-btn').addEventListener('click', submitQuestion);
+
+    // -- Submit --
+    async function submitQuestion() {
+        const input = document.getElementById('question-input');
+        const question = input.value.trim();
+        if (!question) return;
+
+        let paperIds = [PAPER_ID];
+        if (currentMode === 'compare') {
+            const sel = document.getElementById('compare-paper-select').value;
+            if (sel) paperIds.push(parseInt(sel));
+        }
+
+        appendMessage('user', question);
+        input.value = '';
+        setThinking(true);
+
+        try {
+            const res = await fetch('/api/ask/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: JSON.stringify({
+                    question,
+                    paper_ids: paperIds,
+                    mode: currentMode,
+                }),
+            });
+
+            const data = await res.json();
+            setThinking(false);
+
+            if (data.error) {
+                appendMessage('assistant', `Error: ${data.error}`);
+            } else {
+                appendMessage('assistant', data.answer, data.sources);
+            }
+        } catch (err) {
+            setThinking(false);
+            appendMessage('assistant', 'Something went wrong. Please try again.');
+        }
+    }
+
+    // -- Render message --
+    function appendMessage(role, text, sources = []) {
+        document.getElementById('empty-chat')?.remove();
+
+        const msg = document.createElement('div');
+        msg.className = 'message';
+
+        const roleEl = document.createElement('div');
+        roleEl.className = `message-role ${role}`;
+        roleEl.textContent = role === 'user' ? 'You' : 'Assistant';
+
+        const body = document.createElement('div');
+        body.className = 'message-body';
+        body.innerHTML = formatText(text);
+
+        msg.appendChild(roleEl);
+        msg.appendChild(body);
+
+        if (sources.length > 0) {
+            const sourcesEl = document.createElement('div');
+            sourcesEl.className = 'sources';
+            sources.forEach(s => {
+                const chip = document.createElement('div');
+                chip.className = 'source-chip';
+                chip.innerHTML = `<span class="page-ref">p.${s.page}</span><span>${escapeHtml(s.text)}</span>`;
+                sourcesEl.appendChild(chip);
+            });
+            msg.appendChild(sourcesEl);
+        }
+
+        document.getElementById('messages').appendChild(msg);
+        msg.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+
+    function setThinking(on) {
+        document.getElementById('thinking').classList.toggle('active', on);
+        document.getElementById('ask-btn').disabled = on;
+    }
+
+    // -- Minimal markdown: bold, bullet lists --
+    function formatText(text) {
+        return text
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/^[•\-\*] (.+)$/gm, '<li>$1</li>')
+            .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
+            .replace(/\n\n/g, '</p><p>')
+            .replace(/^(?!<)(.+)$/gm, '<p>$1</p>');
+    }
+
+    function escapeHtml(str) {
+        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function getCookie(name) {
+        const v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+        return v ? v[2] : null;
+    }
+</script>
+{% endblock %}
