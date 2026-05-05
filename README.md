@@ -34,29 +34,37 @@ A full-stack **Retrieval-Augmented Generation (RAG)** platform designed to facil
 
 ## ⚙️ Installation & Setup
 Clone the Repository
-
+```text
 PowerShell
 git clone https://github.com/BenyaminMahamed/AI-Research-Assistant.git
 cd AI-Research-Assistant
 Environment Configuration
-
+```
+```text
+PowerShell
+python -m venv venv
+.\venv\Scripts\activate
 Install Dependencies
-
+```
+```text
 PowerShell
 pip install -r requirements.txt
 Environment Variables
 Create a .env file in the root directory:
-
+```
+```text
 Plaintext
 DEBUG=True
 SECRET_KEY=your_django_secret_key
 OPENAI_API_KEY=your_api_key_here
 Initialize Database & Launch
-
+```
+```text
+PowerShell
 python manage.py makemigrations papers
 python manage.py migrate
 python manage.py runserver
-
+```
 ## 🧠 Architectural Workflow (The RAG Pipeline)
 Ingestion & Preprocessing: PDFs are parsed and divided into overlapping semantic chunks to preserve context across boundaries.
 
