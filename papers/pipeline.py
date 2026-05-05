@@ -24,7 +24,7 @@ CHUNK_SIZE = 500
 CHUNK_OVERLAP = 50
 TOP_K = 4
 EMBEDDING_DIM = 384  # all-MiniLM-L6-v2
-GEMINI_MODEL = "gemini-1.5-flash"
+GEMINI_MODEL = "gemini-2.0-flash"
 
 INDEX_PATH = Path(settings.FAISS_INDEX_PATH)
 META_PATH = INDEX_PATH / 'metadata.json'
