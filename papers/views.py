@@ -12,6 +12,29 @@ from .pipeline import process_paper, answer_question
 logger = logging.getLogger(__name__)
 
 VALID_MODES = {'qa', 'summarise', 'critique', 'compare'}
+MAX_UPLOAD_MB = 20
+ALLOWED_MIME_TYPES = {'application/pdf'}
+
+
+def _validate_pdf_upload(uploaded_file):
+    """
+    Validates an uploaded file is a genuine PDF.
+    Checks size, extension, and magic bytes — not just the filename.
+    Returns (is_valid: bool, error_message: str | None)
+    """
+    if uploaded_file.size > MAX_UPLOAD_MB * 1024 * 1024:
+        return False, f"File exceeds {MAX_UPLOAD_MB}MB limit."
+
+    if not uploaded_file.name.lower().endswith('.pdf'):
+        return False, "Only PDF files are accepted."
+
+    # Magic bytes check — %PDF is the PDF file signature
+    header = uploaded_file.read(5)
+    uploaded_file.seek(0)
+    if not header.startswith(b'%PDF'):
+        return False, "Invalid file — does not appear to be a real PDF."
+
+    return True, None
 
 
 def index(request):
@@ -29,7 +52,19 @@ def upload_paper(request):
 
     uploaded_file = request.FILES.get('pdf_file')
     if not uploaded_file:
-        return redirect('index')
+        return render(request, 'papers/index.html', {
+            'papers': Paper.objects.all(),
+            'error': 'No file provided.',
+            'has_api_key': bool(settings.GEMINI_API_KEY),
+        })
+
+    is_valid, error_msg = _validate_pdf_upload(uploaded_file)
+    if not is_valid:
+        return render(request, 'papers/index.html', {
+            'papers': Paper.objects.all(),
+            'error': error_msg,
+            'has_api_key': bool(settings.GEMINI_API_KEY),
+        })
 
     paper = Paper.objects.create(uploaded_file=uploaded_file)
 
@@ -41,7 +76,8 @@ def upload_paper(request):
         paper.delete()
         return render(request, 'papers/index.html', {
             'papers': Paper.objects.all(),
-            'error': f"Failed to process PDF: {str(e)}"
+            'error': f"Failed to process PDF: {str(e)}",
+            'has_api_key': bool(settings.GEMINI_API_KEY),
         })
 
     return redirect('paper_detail', pk=paper.pk)
@@ -53,6 +89,7 @@ def paper_detail(request, pk):
     return render(request, 'papers/detail.html', {
         'paper': paper,
         'all_papers': all_papers,
+        'has_api_key': bool(settings.GEMINI_API_KEY),
     })
 
 

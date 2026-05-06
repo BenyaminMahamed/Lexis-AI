@@ -12,7 +12,8 @@ from pathlib import Path
 import fitz  # PyMuPDF
 from sentence_transformers import SentenceTransformer
 import faiss
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 from django.conf import settings
 
@@ -202,17 +203,18 @@ def ask_gemini(question: str, context: str, mode: str = 'qa') -> str:
     if not api_key:
         return _demo_response(mode, context)
 
-    genai.configure(api_key=api_key)
+    client = genai.Client(api_key=api_key)
     system = SYSTEM_PROMPTS.get(mode, SYSTEM_PROMPTS['qa'])
 
-    model = genai.GenerativeModel(
-        model_name=GEMINI_MODEL,
-        system_instruction=system,
-    )
-
     try:
-        response = model.generate_content(
-            f"Context from paper(s):\n\n{context}\n\n---\n\nQuestion: {question}"
+        response = client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=f"Context from paper(s):\n\n{context}\n\n---\n\nQuestion: {question}",
+            config=types.GenerateContentConfig(
+                system_instruction=system,
+                temperature=0.2,
+                max_output_tokens=1024,
+            ),
         )
         return response.text
     except Exception as e:
