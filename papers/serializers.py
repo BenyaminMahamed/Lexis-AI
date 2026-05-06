@@ -5,7 +5,7 @@ from .models import Paper, Chunk
 class PaperSerializer(serializers.ModelSerializer):
     class Meta:
         model = Paper
-        fields = ['id', 'title', 'uploaded_at', 'chunk_count', 'processed']
+        fields = ['id', 'title', 'created_at', 'chunk_count', 'processed']
         read_only_fields = fields
 
 
