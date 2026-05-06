@@ -1,0 +1,12 @@
+﻿services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./db.sqlite3:/app/db.sqlite3
+      - ./faiss_index:/app/faiss_index
+      - ./media:/app/media
+    env_file:
+      - .env
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
