@@ -1,20 +1,19 @@
-﻿# Environment & secrets
+﻿# Environment
 .env
 
-# Django
+# Database
 db.sqlite3
-media/
+
+# Python cache
 __pycache__/
 *.pyc
 *.pyo
 
-# ML artifacts
+# Uploads (user data, not source code)
+media/
+
+# FAISS index (regenerated at runtime)
 faiss_index/
 
-# Virtual environment
+# Venv
 venv/
-.venv/
-
-# IDE
-.vscode/
-.idea/
