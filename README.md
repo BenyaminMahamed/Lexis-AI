@@ -137,5 +137,5 @@ Context + Question → Gemini 2.0 Flash → Grounded Answer + Sources
 ## Author
 
 **Benyamin Mahamed**  
-BSc (Hons) Computer Science @ University of Westminster (2:1, 2026)
+BSc (Hons) Computer Science, University of Westminster  
 [GitHub](https://github.com/BenyaminMahamed)
