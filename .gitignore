@@ -1,19 +1,8 @@
-﻿# Environment
 .env
-
-# Database
 db.sqlite3
-
-# Python cache
+media/uploads/
+faiss_index/
+venv/
 __pycache__/
 *.pyc
-*.pyo
-
-# Uploads (user data, not source code)
-media/
-
-# FAISS index (regenerated at runtime)
-faiss_index/
-
-# Venv
-venv/
+.DS_Store
