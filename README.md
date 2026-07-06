@@ -1,5 +1,7 @@
 # Lexis — AI Research Assistant
+
 [![CI](https://github.com/BenyaminMahamed/Lexis-AI/actions/workflows/ci.yml/badge.svg)](https://github.com/BenyaminMahamed/Lexis-AI/actions/workflows/ci.yml)
+
 A full-stack **Retrieval-Augmented Generation (RAG)** platform for deep interaction with academic literature. Upload PDFs, ask questions, generate structured summaries, critique arguments, and compare papers — all grounded in the actual document content.
 
 Built as a portfolio project demonstrating end-to-end AI/ML engineering: PDF ingestion, semantic chunking, vector embeddings, FAISS similarity search, and LLM-powered generation.
