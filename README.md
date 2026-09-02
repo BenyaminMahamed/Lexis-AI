@@ -130,7 +130,7 @@ docker run -p 8000:8000 --env-file .env lexis
 ---
 
 ## RAG Pipeline
-
+```
 PDF Upload
 │
 ▼
@@ -150,7 +150,7 @@ Query → Embed → Nearest-Neighbour Search → Retrieve Top-K Chunks
 │
 ▼
 Context + Question → Gemini 2.0 Flash → Grounded Answer + Sources
-
+```
 
 ---
 
