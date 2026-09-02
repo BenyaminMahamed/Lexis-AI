@@ -31,25 +31,25 @@ Built as a portfolio project demonstrating end-to-end AI/ML engineering: PDF ing
 | Database | SQLite (metadata), FAISS index (vectors) |
 | Frontend | Django Templates (custom dark academic UI) |
 | API | Django REST Framework |
+| Containerisation | Docker |
 
 ---
 
 ## Project Structure
 
-```
-├── config/              # Django settings, URLs, WSGI/ASGI
+├── config/ # Django settings, URLs, WSGI/ASGI
 ├── papers/
-│   ├── migrations/      # Database migrations
-│   ├── models.py        # Paper and Chunk schema
-│   ├── pipeline.py      # RAG engine: extraction, chunking, embeddings, FAISS, Gemini
-│   ├── views.py         # Request handling and API endpoints
-│   └── urls.py          # URL routing
+│ ├── migrations/ # Database migrations
+│ ├── models.py # Paper and Chunk schema
+│ ├── pipeline.py # RAG engine: extraction, chunking, embeddings, FAISS, Gemini
+│ ├── views.py # Request handling and API endpoints
+│ └── urls.py # URL routing
 ├── templates/
-│   └── papers/          # base.html, index.html, detail.html
-├── .env.example         # Environment variable template
+│ └── papers/ # base.html, index.html, detail.html
+├── .env.example # Environment variable template
 ├── manage.py
 └── requirements.txt
-```
+
 
 ---
 
@@ -58,8 +58,8 @@ Built as a portfolio project demonstrating end-to-end AI/ML engineering: PDF ing
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/BenyaminMahamed/AI-Research-Assistant.git
-cd AI-Research-Assistant
+git clone https://github.com/BenyaminMahamed/Lexis-AI.git
+cd Lexis-AI
 ```
 
 ### 2. Create and activate a virtual environment
@@ -110,29 +110,47 @@ Visit `http://127.0.0.1:8000`.
 
 ---
 
+## Testing
+
+Covered by a 13-test suite (`pytest`) running automatically in GitHub Actions CI on every push — covering PDF extraction, chunking boundaries, embedding shape/normalisation, and FAISS retrieval correctness.
+
+```bash
+pytest
+```
+
+---
+
+## Docker
+
+```bash
+docker build -t lexis .
+docker run -p 8000:8000 --env-file .env lexis
+```
+
+---
+
 ## RAG Pipeline
 
-```
 PDF Upload
-    │
-    ▼
+│
+▼
 Text Extraction (PyMuPDF, page-level)
-    │
-    ▼
+│
+▼
 Semantic Chunking (500-word windows, 50-word overlap)
-    │
-    ▼
+│
+▼
 Embedding Generation (all-MiniLM-L6-v2, 384-dim, normalised)
-    │
-    ▼
+│
+▼
 FAISS Indexing (IndexFlatIP — inner product similarity)
-    │
-    ▼
+│
+▼
 Query → Embed → Nearest-Neighbour Search → Retrieve Top-K Chunks
-    │
-    ▼
+│
+▼
 Context + Question → Gemini 2.0 Flash → Grounded Answer + Sources
-```
+
 
 ---
 
